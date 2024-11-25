@@ -1,0 +1,102 @@
+﻿@model CuaHang.Models.InvoiceInfo
+
+@{
+    ViewBag.Title = "Chỉnh sửa hóa đơn";
+    var invoiceDetails = ViewBag.InvoiceDetails as List<CuaHang.Models.InvoiceDetailsInfo>;
+}
+
+<h2>Chỉnh sửa hóa đơn</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
+{
+    <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+}
+
+<form method="post" action="/EditInvoice/Index">
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        @Html.HiddenFor(model => model.InvoiceID)
+
+        <div class="form-group">
+            <label for="CustomerID" class="control-label col-md-2">Mã khách hàng</label>
+            <div class="col-md-10">
+                <input type="text" id="CustomerID" name="CustomerID" class="form-control" value="@Model.CustomerID" />
+                @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="InvoiceDate" class="control-label col-md-2">Ngày hóa đơn</label>
+            <div class="col-md-10">
+                <input type="date" id="InvoiceDate" name="InvoiceDate" class="form-control" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" />
+                @Html.ValidationMessageFor(model => model.InvoiceDate, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="TotalPrice" class="control-label col-md-2">Tổng giá</label>
+            <div class="col-md-10">
+                <input type="text" id="TotalPrice" name="TotalPrice" class="form-control" value="@Model.TotalPrice" />
+                @Html.ValidationMessageFor(model => model.TotalPrice, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <h4>Chi tiết sản phẩm</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Mã sản phẩm</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Tổng giá</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < invoiceDetails.Count; i++)
+                {
+                    <tr>
+                        @Html.HiddenFor(model => invoiceDetails[i].InvoiceDetailID)
+                        <td>@Html.TextBoxFor(model => invoiceDetails[i].ProductID, new { @class = "form-control" })</td>
+                        <td>@invoiceDetails[i].Product.ProductName</td>
+                        <td>@Html.TextBoxFor(model => invoiceDetails[i].Quantity, new { @class = "form-control" })</td>
+                        <td>@Html.TextBoxFor(model => invoiceDetails[i].TotalPrice, new { @class = "form-control" })</td>
+                    </tr>
+                }System.NullReferenceException: 'Object reference not set to an instance of an object.'
+            </tbody>
+        </table>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </div>
+    </div>
+</form>
+
+<div>
+    @Html.ActionLink("Quay lại", "Index", "Invoice")
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}
+
+
+
+
+
+
+
+
+
+
+

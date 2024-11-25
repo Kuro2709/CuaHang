@@ -1,0 +1,51 @@
+﻿@model List<CuaHang.Models.InvoiceInfo>
+
+@{
+    ViewBag.Title = "Danh sách hóa đơn";
+}
+
+<h2>Danh sách hóa đơn</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+<p>
+    @Html.ActionLink("Tạo hóa đơn mới", "Index", "AddInvoice", null, new { @class = "btn btn-primary" })
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>InvoiceID</th>
+            <th>Tên khách hàng</th>
+            <th>Tổng giá</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.InvoiceID</td>
+                <td>@item.Customer.CustomerName</td>
+                <td>@item.TotalPrice</td>
+                <td>
+                    @Html.ActionLink("chi tiết hóa đơn", "Index", "InvoiceDetails", new { id = item.InvoiceID }, new { @class = "btn btn-info" }) |
+                    @Html.ActionLink("Thay đổi", "Index", "EditInvoice", new { id = item.InvoiceID }, new { @class = "btn btn-primary" }) |
+                    @Html.ActionLink("Xóa", "Index", "DeleteInvoice", new { id = item.InvoiceID }, new { @class = "btn btn-danger", onclick = "return confirm('Bạn có muốn xóa không');" })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+

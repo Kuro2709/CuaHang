@@ -1,0 +1,55 @@
+﻿@model CuaHang.Models.CustomerInfo
+
+@{
+    ViewBag.Title = "Thêm khách hàng";
+}
+
+<h2>Thêm khách hàng</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
+{
+    <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+}
+
+<form method="post" action="/AddCustomer/Index">
+    @Html.AntiForgeryToken()
+
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Mã khách hàng:</label>
+        <div class="col-sm-6">
+            <input type="text" class="form-control" name="CustomerID" value="@Model.CustomerID" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Tên khách hàng:</label>
+        <div class="col-sm-6">
+            <input type="text" class="form-control" name="CustomerName" value="@Model.CustomerName" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Số điện thoại:</label>
+        <div class="col-sm-6">
+            <input type="text" class="form-control" name="Phone" value="@Model.Phone" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="offset-sm-3 col-sm-3 d-grid">
+            <button type="submit" class="btn btn-primary">Thêm</button>
+        </div>
+        <div class="col-sm-3 d-grid">
+            <a class="btn btn-outline-primary" href="/" role="button">Hủy</a>
+        </div>
+    </div>
+</form>
+
+
+
+
+
+
+

@@ -1,0 +1,19 @@
+﻿@model CuaHang.Models.InvoiceDetailsInfo
+
+<tr class="invoice-detail-row">
+    <td>
+        @Html.DropDownListFor(model => model.ProductID, (SelectList)ViewBag.Products, new { @class = "form-control product-dropdown" })
+    </td>
+    <td>
+        @Html.EditorFor(model => model.Quantity, new { htmlAttributes = new { @class = "form-control quantity" } })
+    </td>
+    <td>
+        @Html.EditorFor(model => model.TotalPrice, new { htmlAttributes = new { @class = "form-control unitPrice", @readonly = "readonly" } })
+    </td>
+    <td>
+        <span class="totalPrice">@Model.TotalPrice.ToString("0.00")</span>
+    </td>
+    <td>
+        <button type="button" class="btn btn-danger removeDetailRow">Remove</button>
+    </td>
+</tr>

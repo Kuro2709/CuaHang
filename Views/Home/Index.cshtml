@@ -1,0 +1,29 @@
+﻿@{
+    ViewBag.Title = "Trang chủ";
+}
+
+<main>
+    <section class="row" aria-labelledby="storeTitle">
+        <h1 id="storeTitle">Chào mừng bạn đến với cửa hàng</h1>
+        <p class="lead">Quản lý sản phẩm, khách hàng và hóa đơn của bạn một cách dễ dàng.</p>
+    </section>
+
+    <div class="row">
+        <section class="col-md-4" aria-labelledby="productsTitle">
+            <h2 id="productsTitle">Sản phẩm</h2>
+            <p>Quản lý sản phẩm trong cửa hàng của bạn, bao gồm thêm sản phẩm mới, chỉnh sửa sản phẩm hiện có và xóa sản phẩm.</p>
+            <p><a class="btn btn-primary" href="@Url.Action("Index", "Product")">Quản lý sản phẩm &raquo;</a></p>
+        </section>
+        <section class="col-md-4" aria-labelledby="customersTitle">
+            <h2 id="customersTitle">Khách hàng</h2>
+            <p>Quản lý khách hàng của cửa hàng, bao gồm thêm khách hàng mới, chỉnh sửa khách hàng hiện tại và xóa khách hàng.</p>
+            <p><a class="btn btn-primary" href="@Url.Action("Index", "Customer")">Quản lý khách hàng &raquo;</a></p>
+        </section>
+        <section class="col-md-4" aria-labelledby="invoicesTitle">
+            <h2 id="invoicesTitle">Hóa đơn</h2>
+            <p>Quản lý hóa đơn của cửa hàng, bao gồm tạo hóa đơn mới, chỉnh sửa hóa đơn hiện có và xóa hóa đơn.</p>
+            <p><a class="btn btn-primary" href="@Url.Action("Index", "Invoice")">Quản lý hóa đơn &raquo;</a></p>
+        </section>
+    </div>
+</main>
+

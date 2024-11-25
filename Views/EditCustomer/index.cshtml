@@ -1,0 +1,67 @@
+﻿@model CuaHang.Models.CustomerInfo
+
+@{
+    ViewBag.Title = "Chỉnh sửa khách hàng";
+}
+
+<h2>Chỉnh sửa khách hàng</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
+{
+    <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+}
+
+<form method="post" action="/EditCustomer/Index">
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <h4>Khách hàng</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        @Html.HiddenFor(model => model.CustomerID)
+
+        <div class="form-group">
+            <label for="CustomerName" class="control-label col-md-2">Tên khách hàng</label>
+            <div class="col-md-10">
+                <input type="text" id="CustomerName" name="CustomerName" class="form-control" value="@Model.CustomerName" />
+                @Html.ValidationMessageFor(model => model.CustomerName, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="Phone" class="control-label col-md-2">Điện thoại</label>
+            <div class="col-md-10">
+                <input type="text" id="Phone" name="Phone" class="form-control" value="@Model.Phone" />
+                @Html.ValidationMessageFor(model => model.Phone, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Lưu" class="btn btn-primary" />
+            </div>
+        </div>
+    </div>
+</form>
+
+<div>
+    @Html.ActionLink("Quay lại", "Index", "Customer")
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}
+
+
+
+
+
+
+
+
