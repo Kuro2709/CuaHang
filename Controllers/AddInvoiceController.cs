@@ -22,12 +22,19 @@ namespace CuaHang.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Index(InvoiceInfo invoice)
         {
+            // Trim spaces and convert InvoiceID to uppercase
+            invoice.InvoiceID = invoice.InvoiceID?.Trim().ToUpper();
+
             if (ModelState.IsValid)
             {
                 // Check for duplicate InvoiceID
                 if (InvoiceExists(invoice.InvoiceID))
                 {
                     ModelState.AddModelError("InvoiceID", "Invoice ID already exists.");
+                }
+                else if (invoice.InvoiceDetails == null || invoice.InvoiceDetails.Count == 0)
+                {
+                    ModelState.AddModelError("", "You must add at least one product.");
                 }
                 else
                 {
@@ -36,7 +43,7 @@ namespace CuaHang.Controllers
 
                     // Insert invoice and invoice details
                     InsertInvoice(invoice);
-                    ViewBag.SuccessMessage = "Invoice added successfully.";
+                    TempData["SuccessMessage"] = "Invoice added successfully.";
                     return RedirectToAction("Index");
                 }
             }
@@ -45,6 +52,8 @@ namespace CuaHang.Controllers
             ViewBag.Products = GetProducts();
             return View(invoice);
         }
+
+
 
         [HttpPost]
         public ActionResult AddInvoiceDetail()
@@ -119,6 +128,7 @@ namespace CuaHang.Controllers
             decimal price = GetProductPrice(productID);
             return Json(price, JsonRequestBehavior.AllowGet);
         }
+
         private decimal GetProductPrice(string productID)
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
@@ -156,13 +166,6 @@ namespace CuaHang.Controllers
                 }
             }
             return new SelectList(customers, "CustomerID", "CustomerName");
-        }
-
-        [HttpGet]
-        public JsonResult GetProductPriceById(string productID)
-        {
-            decimal price = GetProductPrice(productID);
-            return Json(price, JsonRequestBehavior.AllowGet);
         }
 
         private SelectList GetProducts()

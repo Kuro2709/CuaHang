@@ -8,91 +8,98 @@ namespace CuaHang.Controllers
 {
     public class EditInvoiceController : Controller
     {
-        public string errorMessage = "";
-        public string successMessage = "";
+        private readonly string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=master;Integrated Security=True"; // Replace with your actual connection string
 
         // GET: EditInvoice
         public ActionResult Index(string id)
         {
-            InvoiceInfo invoice = new InvoiceInfo();
-            List<InvoiceDetailsInfo> invoiceDetails = new List<InvoiceDetailsInfo>();
-            try
+            var invoice = GetInvoiceById(id);
+            if (invoice == null)
             {
-                string connectionString = "Data Source = (localdb)\\MSSQLLocalDB; Initial Catalog = master; Integrated Security = True"; // Replace with your actual connection string
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    string sql = "SELECT * FROM Invoice WHERE InvoiceID = @InvoiceID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@InvoiceID", id);
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                invoice.InvoiceID = reader["InvoiceID"].ToString();
-                                invoice.CustomerID = reader["CustomerID"].ToString();
-                                invoice.InvoiceDate = Convert.ToDateTime(reader["InvoiceDate"]);
-                                invoice.TotalPrice = Convert.ToDecimal(reader["TotalPrice"]);
-                            }
-                        }
-                    }
-
-                    sql = "SELECT d.InvoiceDetailID, d.ProductID, p.ProductName, d.Quantity, d.TotalPrice FROM InvoiceDetails d LEFT JOIN Product p ON d.ProductID = p.ProductID WHERE d.InvoiceID = @InvoiceID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@InvoiceID", id);
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                InvoiceDetailsInfo detail = new InvoiceDetailsInfo
-                                {
-                                    InvoiceDetailID = Convert.ToInt32(reader["InvoiceDetailID"]),
-                                    ProductID = reader["ProductID"].ToString(),
-                                    Product = new ProductInfo { ProductName = reader["ProductName"].ToString() },
-                                    Quantity = Convert.ToInt32(reader["Quantity"]),
-                                    TotalPrice = Convert.ToDecimal(reader["TotalPrice"])
-                                };
-                                invoiceDetails.Add(detail);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                errorMessage = "Exception: " + ex.Message;
-                ViewBag.ErrorMessage = errorMessage;
-                return View(invoice);
+                return HttpNotFound();
             }
 
-            ViewBag.InvoiceDetails = invoiceDetails;
+            ViewBag.Customers = GetCustomers();
+            ViewBag.Products = GetProducts();
+            ViewBag.InvoiceDetails = invoice.InvoiceDetails;
             return View(invoice);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Index(InvoiceInfo invoice, List<InvoiceDetailsInfo> invoiceDetails)
+        public ActionResult Index(InvoiceInfo invoice)
         {
+            // Trim spaces and convert InvoiceID to uppercase
+            invoice.InvoiceID = invoice.InvoiceID?.Trim().ToUpper();
+
             if (ModelState.IsValid)
             {
-                if (string.IsNullOrEmpty(invoice.CustomerID) || invoice.InvoiceDate == default || invoice.TotalPrice <= 0)
-                {
-                    errorMessage = "All the fields are required";
-                    ViewBag.ErrorMessage = errorMessage;
-                    ViewBag.InvoiceDetails = invoiceDetails;
-                    return View(invoice);
-                }
+                // Calculate total price
+                invoice.RecalculateTotalPrice(GetProductPrice);
 
-                try
+                // Update invoice and invoice details
+                UpdateInvoice(invoice);
+                TempData["SuccessMessage"] = "Invoice updated successfully.";
+                return RedirectToAction("Index", new { id = invoice.InvoiceID });
+            }
+
+            ViewBag.Customers = GetCustomers();
+            ViewBag.Products = GetProducts();
+            ViewBag.InvoiceDetails = invoice.InvoiceDetails;
+            return View(invoice);
+        }
+
+        [HttpPost]
+        public ActionResult AddInvoiceDetail()
+        {
+            ViewBag.Products = GetProducts();
+            return PartialView("_InvoiceDetailRow", new InvoiceDetailsInfo());
+        }
+
+        [HttpGet]
+        public JsonResult GetProductPriceByID(string productID)
+        {
+            decimal price = GetProductPrice(productID);
+            return Json(price, JsonRequestBehavior.AllowGet);
+        }
+
+        private InvoiceInfo GetInvoiceById(string id)
+        {
+            // Implement the logic to get the invoice by ID from the database
+            // This is just a placeholder implementation
+            return new InvoiceInfo
+            {
+                InvoiceID = id,
+                CustomerID = "C001",
+                InvoiceDate = DateTime.Now,
+                TotalPrice = 1000,
+                InvoiceDetails = new List<InvoiceDetailsInfo>
                 {
-                    string connectionString = "Data Source = (localdb)\\MSSQLLocalDB; Initial Catalog = master; Integrated Security = True"; // Replace with your actual connection string
-                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    new InvoiceDetailsInfo
                     {
-                        connection.Open();
-                        string sql = "UPDATE Invoice SET CustomerID = @CustomerID, InvoiceDate = @InvoiceDate, TotalPrice = @TotalPrice WHERE InvoiceID = @InvoiceID";
-                        using (SqlCommand command = new SqlCommand(sql, connection))
+                        InvoiceDetailID = 1,
+                        InvoiceID = id,
+                        ProductID = "P001",
+                        Quantity = 2,
+                        TotalPrice = 200,
+                        Product = new ProductInfo { ProductID = "P001", ProductName = "Product 1" }
+                    }
+                }
+            };
+        }
+
+        private void UpdateInvoice(InvoiceInfo invoice)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                using (SqlTransaction transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        // Update invoice
+                        string updateInvoiceSql = "UPDATE Invoice SET CustomerID = @CustomerID, InvoiceDate = @InvoiceDate, TotalPrice = @TotalPrice WHERE InvoiceID = @InvoiceID";
+                        using (SqlCommand command = new SqlCommand(updateInvoiceSql, connection, transaction))
                         {
                             command.Parameters.AddWithValue("@InvoiceID", invoice.InvoiceID);
                             command.Parameters.AddWithValue("@CustomerID", invoice.CustomerID);
@@ -101,49 +108,101 @@ namespace CuaHang.Controllers
                             command.ExecuteNonQuery();
                         }
 
-                        if (invoiceDetails == null)
+                        // Delete existing invoice details
+                        string deleteDetailsSql = "DELETE FROM InvoiceDetails WHERE InvoiceID = @InvoiceID";
+                        using (SqlCommand command = new SqlCommand(deleteDetailsSql, connection, transaction))
                         {
-                            invoiceDetails = new List<InvoiceDetailsInfo>();
+                            command.Parameters.AddWithValue("@InvoiceID", invoice.InvoiceID);
+                            command.ExecuteNonQuery();
                         }
 
-                        foreach (var detail in invoiceDetails)
+                        // Insert new invoice details
+                        foreach (var detail in invoice.InvoiceDetails)
                         {
-                            sql = "UPDATE InvoiceDetails SET ProductID = @ProductID, Quantity = @Quantity, TotalPrice = @TotalPrice WHERE InvoiceDetailID = @InvoiceDetailID";
-                            using (SqlCommand command = new SqlCommand(sql, connection))
+                            string insertDetailSql = "INSERT INTO InvoiceDetails (InvoiceID, ProductID, Quantity, TotalPrice) VALUES (@InvoiceID, @ProductID, @Quantity, @TotalPrice)";
+                            using (SqlCommand command = new SqlCommand(insertDetailSql, connection, transaction))
                             {
-                                command.Parameters.AddWithValue("@InvoiceDetailID", detail.InvoiceDetailID);
+                                command.Parameters.AddWithValue("@InvoiceID", invoice.InvoiceID);
                                 command.Parameters.AddWithValue("@ProductID", detail.ProductID);
                                 command.Parameters.AddWithValue("@Quantity", detail.Quantity);
-                                command.Parameters.AddWithValue("@TotalPrice", detail.TotalPrice);
+                                command.Parameters.AddWithValue("@TotalPrice", detail.Quantity * GetProductPrice(detail.ProductID));
                                 command.ExecuteNonQuery();
                             }
                         }
+
+                        transaction.Commit();
                     }
-                    successMessage = "Invoice updated successfully";
-                    ViewBag.SuccessMessage = successMessage;
-                    return RedirectToAction("Index", "Invoice");
-                }
-                catch (Exception ex)
-                {
-                    errorMessage = "Exception: " + ex.Message;
-                    ViewBag.ErrorMessage = errorMessage;
-                    ViewBag.InvoiceDetails = invoiceDetails;
-                    return View(invoice);
+                    catch (Exception)
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
                 }
             }
-
-            ViewBag.InvoiceDetails = invoiceDetails;
-            return View(invoice);
         }
 
+        private decimal GetProductPrice(string productID)
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                string sql = "SELECT Price FROM Product WHERE ProductID = @ProductID";
+                using (SqlCommand command = new SqlCommand(sql, connection))
+                {
+                    command.Parameters.AddWithValue("@ProductID", productID);
+                    return (decimal)command.ExecuteScalar();
+                }
+            }
+        }
+
+        private SelectList GetCustomers()
+        {
+            List<CustomerInfo> customers = new List<CustomerInfo>();
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                string sql = "SELECT CustomerID, CustomerName FROM Customer";
+                using (SqlCommand command = new SqlCommand(sql, connection))
+                {
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            customers.Add(new CustomerInfo
+                            {
+                                CustomerID = reader["CustomerID"].ToString(),
+                                CustomerName = reader["CustomerName"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            return new SelectList(customers, "CustomerID", "CustomerName");
+        }
+
+        private SelectList GetProducts()
+        {
+            List<ProductInfo> products = new List<ProductInfo>();
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                string sql = "SELECT ProductID, ProductName FROM Product";
+                using (SqlCommand command = new SqlCommand(sql, connection))
+                {
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            products.Add(new ProductInfo
+                            {
+                                ProductID = reader["ProductID"].ToString(),
+                                ProductName = reader["ProductName"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            return new SelectList(products, "ProductID", "ProductName");
+        }
     }
 }
-
-
-
-
-
-
-
-
-

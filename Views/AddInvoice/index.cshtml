@@ -1,14 +1,14 @@
 ﻿@model CuaHang.Models.InvoiceInfo
 
 @{
-    ViewBag.Title = "Add New Invoice";
+    ViewBag.Title = "Thêm hóa đơn mới";
 }
 
-<h2>Add New Invoice</h2>
+<h2>Thêm hóa đơn mới</h2>
 
-@if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
 {
-    <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
 
 @using (Html.BeginForm())
@@ -16,12 +16,11 @@
     @Html.AntiForgeryToken()
 
     <div class="form-horizontal">
-        <h4>Invoice</h4>
         <hr />
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
         <div class="form-group">
-            @Html.LabelFor(model => model.InvoiceID, htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.Label("Mã hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.EditorFor(model => model.InvoiceID, new { htmlAttributes = new { @class = "form-control", @oninput = "this.value = this.value.toUpperCase().replace(/\\s/g, '')" } })
                 @Html.ValidationMessageFor(model => model.InvoiceID, "", new { @class = "text-danger" })
@@ -29,22 +28,22 @@
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.CustomerID, "Customer", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.CustomerID, "Khách hàng", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownListFor(model => model.CustomerID, (SelectList)ViewBag.Customers, new { @class = "form-control" })
+                @Html.DropDownListFor(model => model.CustomerID, (SelectList)ViewBag.Customers, "Chọn khách hàng", new { @class = "form-control" })
                 @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.InvoiceDate, htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.Label("Ngày tạo hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.InvoiceDate, new { htmlAttributes = new { @class = "form-control", @type = "date", @value = Model.InvoiceDate.ToString("yyyy-MM-dd") } })
+                @Html.EditorFor(model => model.InvoiceDate, new { htmlAttributes = new { @class = "form-control", @type = "date" } })
                 @Html.ValidationMessageFor(model => model.InvoiceDate, "", new { @class = "text-danger" })
             </div>
         </div>
 
-        <h4>Invoice Details</h4>
+        <h4>Chi tiết sản phẩm</h4>
         <table class="table">
             <thead>
                 <tr>
@@ -65,60 +64,91 @@
                 }
             </tbody>
         </table>
-        <button type="button" class="btn btn-success" id="addDetailRow">Add Product</button>
+        <button type="button" class="btn btn-success" id="addDetailRow">Thêm sản phẩm</button>
+
+        <div class="form-group">
+            <label class="control-label col-md-2">Tổng tiền</label>
+            <div class="col-md-10">
+                <input type="text" id="TotalPrice" class="form-control" readonly value="0.00" />
+            </div>
+        </div>
 
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Save" class="btn btn-primary" />
-                <input type="reset" value="Reset" class="btn btn-secondary" />
+                <input type="submit" value="Lưu" class="btn btn-primary" />
+                <input type="reset" value="Làm mới" class="btn btn-secondary" id="resetForm" />
             </div>
         </div>
     </div>
 }
 
-@section Scripts {
-    @Scripts.Render("~/bundles/jqueryval")
-    <script type="text/javascript">
-        $(document).ready(function () {
-            $('#addDetailRow').click(function () {
-                $.ajax({
-                    url: '@Url.Action("AddInvoiceDetail")',
-                    type: 'POST',
-                    success: function (data) {
-                        $('#invoiceDetails').append(data);
-                    }
-                });
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Add new detail row
+        $('#addDetailRow').click(function () {
+            $.ajax({
+                url: '@Url.Action("AddInvoiceDetail")',
+                type: 'POST',
+                success: function (data) {
+                    $('#invoiceDetails').append(data);
+                }
             });
+        });
 
-            $(document).on('change', '.product-dropdown', function () {
-                var productID = $(this).val();
-                var $row = $(this).closest('.invoice-detail-row');
+        // Remove detail row
+        $(document).on('click', '.remove-row', function () {
+            $(this).closest('tr').remove();
+            updateTotalPrice(); // Recalculate total price after removing a row
+        });
+
+        // Update product price and total price
+        $(document).on('change', '.product-dropdown', function () {
+            var productID = $(this).val();
+            var $row = $(this).closest('.invoice-detail-row');
+            if (productID) {
                 $.ajax({
-                    url: '@Url.Action("GetProductPrice", "AddInvoice")',
+                    url: '@Url.Action("GetProductPriceByID", "AddInvoice")',
                     type: 'GET',
                     data: { productID: productID },
                     success: function (price) {
                         $row.find('.unitPrice').val(price);
-                        updateTotalPrice();
+                        updateRowPrice($row);
                     }
                 });
-            });
-
-            $(document).on('change', '.quantity, .unitPrice', function () {
-                updateTotalPrice();
-            });
-
-            function updateTotalPrice() {
-                var total = 0;
-                $('#invoiceDetails tr').each(function () {
-                    var quantity = $(this).find('.quantity').val();
-                    var unitPrice = $(this).find('.unitPrice').val();
-                    var totalPrice = quantity * unitPrice;
-                    $(this).find('.totalPrice').text(totalPrice.toFixed(2));
-                    total += totalPrice;
-                });
-                $('#TotalPrice').val(total.toFixed(2));
             }
         });
-    </script>
-}
+
+        // Update row price and total price when quantity or unit price changes
+        $(document).on('input', '.quantity, .unitPrice', function () {
+            var $row = $(this).closest('.invoice-detail-row');
+            updateRowPrice($row);
+        });
+
+        // Function to update row price
+        function updateRowPrice($row) {
+            var quantity = parseFloat($row.find('.quantity').val()) || 0;
+            var unitPrice = parseFloat($row.find('.unitPrice').val()) || 0;
+            var totalPrice = quantity * unitPrice;
+            $row.find('.totalPrice').text(totalPrice.toFixed(2));
+            updateTotalPrice();
+        }
+
+        // Function to calculate and update total price
+        function updateTotalPrice() {
+            var total = 0;
+            $('#invoiceDetails .invoice-detail-row').each(function () {
+                var rowTotal = parseFloat($(this).find('.totalPrice').text()) || 0;
+                total += rowTotal;
+            });
+            $('#TotalPrice').val(total.toFixed(2));
+        }
+
+        // Reset the form and clear table rows except for the first
+        $('#resetForm').click(function () {
+            $('#invoiceDetails').empty();
+            $('#TotalPrice').val('0.00');
+            $('#addDetailRow').trigger('click'); // Add a single row after reset
+        });
+    });
+</script>

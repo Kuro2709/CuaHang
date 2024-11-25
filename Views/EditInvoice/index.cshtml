@@ -2,7 +2,7 @@
 
 @{
     ViewBag.Title = "Chỉnh sửa hóa đơn";
-    var invoiceDetails = ViewBag.InvoiceDetails as List<CuaHang.Models.InvoiceDetailsInfo>;
+    var invoiceDetails = (ViewBag.InvoiceDetails as IEnumerable<CuaHang.Models.InvoiceDetailsInfo>)?.ToList();
 }
 
 <h2>Chỉnh sửa hóa đơn</h2>
@@ -17,7 +17,8 @@
     <div class="alert alert-success">@ViewBag.SuccessMessage</div>
 }
 
-<form method="post" action="/EditInvoice/Index">
+@using (Html.BeginForm("Index", "EditInvoice", FormMethod.Post))
+{
     @Html.AntiForgeryToken()
 
     <div class="form-horizontal">
@@ -27,26 +28,18 @@
         @Html.HiddenFor(model => model.InvoiceID)
 
         <div class="form-group">
-            <label for="CustomerID" class="control-label col-md-2">Mã khách hàng</label>
+            @Html.LabelFor(model => model.CustomerID, "Mã khách hàng", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                <input type="text" id="CustomerID" name="CustomerID" class="form-control" value="@Model.CustomerID" />
+                @Html.DropDownListFor(model => model.CustomerID, (SelectList)ViewBag.Customers, "Chọn khách hàng", new { @class = "form-control" })
                 @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger" })
             </div>
         </div>
 
         <div class="form-group">
-            <label for="InvoiceDate" class="control-label col-md-2">Ngày hóa đơn</label>
+            @Html.LabelFor(model => model.InvoiceDate, "Ngày hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                <input type="date" id="InvoiceDate" name="InvoiceDate" class="form-control" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" />
+                @Html.EditorFor(model => model.InvoiceDate, new { htmlAttributes = new { @class = "form-control", @type = "date" } })
                 @Html.ValidationMessageFor(model => model.InvoiceDate, "", new { @class = "text-danger" })
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="TotalPrice" class="control-label col-md-2">Tổng giá</label>
-            <div class="col-md-10">
-                <input type="text" id="TotalPrice" name="TotalPrice" class="form-control" value="@Model.TotalPrice" />
-                @Html.ValidationMessageFor(model => model.TotalPrice, "", new { @class = "text-danger" })
             </div>
         </div>
 
@@ -54,49 +47,107 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th>Mã sản phẩm</th>
-                    <th>Tên sản phẩm</th>
+                    <th>Sản phẩm</th>
                     <th>Số lượng</th>
+                    <th>Đơn giá</th>
                     <th>Tổng giá</th>
+                    <th>Hành động</th>
                 </tr>
             </thead>
-            <tbody>
-                @for (int i = 0; i < invoiceDetails.Count; i++)
+            <tbody id="invoiceDetails">
+                @if (invoiceDetails != null)
                 {
-                    <tr>
-                        @Html.HiddenFor(model => invoiceDetails[i].InvoiceDetailID)
-                        <td>@Html.TextBoxFor(model => invoiceDetails[i].ProductID, new { @class = "form-control" })</td>
-                        <td>@invoiceDetails[i].Product.ProductName</td>
-                        <td>@Html.TextBoxFor(model => invoiceDetails[i].Quantity, new { @class = "form-control" })</td>
-                        <td>@Html.TextBoxFor(model => invoiceDetails[i].TotalPrice, new { @class = "form-control" })</td>
-                    </tr>
-                }System.NullReferenceException: 'Object reference not set to an instance of an object.'
+                    for (int i = 0; i < invoiceDetails.Count; i++)
+                    {
+                        @Html.Partial("_InvoiceDetailRow", invoiceDetails[i])
+                    }
+                }
             </tbody>
         </table>
+        <button type="button" class="btn btn-success" id="addDetailRow">Thêm sản phẩm</button>
+
+        <div class="form-group">
+            <label class="control-label col-md-2">Tổng tiền</label>
+            <div class="col-md-10">
+                <input type="text" id="TotalPrice" class="form-control" readonly value="0.00" />
+            </div>
+        </div>
 
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Save" class="btn btn-primary" />
+                <input type="submit" value="Lưu" class="btn btn-primary" />
             </div>
         </div>
     </div>
-</form>
-
-<div>
-    @Html.ActionLink("Quay lại", "Index", "Invoice")
-</div>
-
-@section Scripts {
-    @Scripts.Render("~/bundles/jqueryval")
 }
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Add new detail row
+        $('#addDetailRow').click(function () {
+            $.ajax({
+                url: '@Url.Action("AddInvoiceDetail", "EditInvoice")',
+                type: 'POST',
+                success: function (data) {
+                    $('#invoiceDetails').append(data);
+                }
+            });
+        });
 
+        // Remove detail row
+        $(document).on('click', '.remove-row', function () {
+            $(this).closest('tr').remove();
+            updateTotalPrice(); // Recalculate total price after removing a row
+        });
 
+        // Update product price and total price
+        $(document).on('change', '.product-dropdown', function () {
+            var productID = $(this).val();
+            var $row = $(this).closest('.invoice-detail-row');
+            if (productID) {
+                $.ajax({
+                    url: '@Url.Action("GetProductPriceByID", "EditInvoice")',
+                    type: 'GET',
+                    data: { productID: productID },
+                    success: function (price) {
+                        $row.find('.unitPrice').val(price);
+                        updateRowPrice($row);
+                    }
+                });
+            }
+        });
 
+        // Update row price and total price when quantity or unit price changes
+        $(document).on('input', '.quantity, .unitPrice', function () {
+            var $row = $(this).closest('.invoice-detail-row');
+            updateRowPrice($row);
+        });
 
+        // Function to update row price
+        function updateRowPrice($row) {
+            var quantity = parseFloat($row.find('.quantity').val()) || 0;
+            var unitPrice = parseFloat($row.find('.unitPrice').val()) || 0;
+            var totalPrice = quantity * unitPrice;
+            $row.find('.totalPrice').text(totalPrice.toFixed(2));
+            updateTotalPrice();
+        }
 
+        // Function to calculate and update total price
+        function updateTotalPrice() {
+            var total = 0;
+            $('#invoiceDetails .invoice-detail-row').each(function () {
+                var rowTotal = parseFloat($(this).find('.totalPrice').text()) || 0;
+                total += rowTotal;
+            });
+            $('#TotalPrice').val(total.toFixed(2));
+        }
 
-
-
-
-
+        // Reset the form and clear table rows except for the first
+        $('#resetForm').click(function () {
+            $('#invoiceDetails').empty();
+            $('#TotalPrice').val('0.00');
+            $('#addDetailRow').trigger('click'); // Add a single row after reset
+        });
+    });
+</script>
