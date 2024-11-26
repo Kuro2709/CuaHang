@@ -1,0 +1,67 @@
+﻿@model List<CuaHang.Models.ThongTinChiTietHoaDon>
+
+@{
+    ViewBag.Title = "Chi tiết hóa đơn";
+    var invoice = ViewBag.Invoice as CuaHang.Models.ThongTinHoaDon;
+}
+
+<h2>Chi tiết hóa đơn</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+<div>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>Mã số hóa đơn</dt>
+        <dd>@invoice.InvoiceID</dd>
+
+        <dt>Mã khách hàng</dt>
+        <dd>@invoice.CustomerID</dd>
+
+        <dt>Ngày hóa đơn</dt>
+        <dd>@invoice.InvoiceDate.ToString("yyyy-MM-dd")</dd>
+
+        <dt>Tổng giá</dt>
+        <dd>@invoice.TotalPrice</dd>
+    </dl>
+</div>
+
+<h4>Chi tiết sản phẩm</h4>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Mã sản phẩm</th>
+            <th>Tên sản phẩm</th>
+            <th>Số lượng</th>
+            <th>Tổng giá</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var detail in Model)
+        {
+            <tr>
+                <td>@detail.ProductID</td>
+                <td>@detail.Product.ProductName</td>
+                <td>@detail.Quantity</td>
+                <td>@detail.TotalPrice</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    @Html.ActionLink("Quay lại", "Index", "HoaDon")
+</div>
+
+
+
+
+
+
+
+
+
+

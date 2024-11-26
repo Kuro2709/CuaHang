@@ -1,0 +1,174 @@
+﻿@model CuaHang.Models.ThongTinHoaDon
+
+@{
+    ViewBag.Title = "Thêm hóa đơn mới";
+}
+
+<h2>Thêm hóa đơn mới</h2>
+
+@if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+@using (Html.BeginForm("Index", "ThemHoaDon", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group">
+            @Html.Label("Mã hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.InvoiceID, new { htmlAttributes = new { @class = "form-control", @oninput = "this.value = this.value.toUpperCase().replace(/\\s/g, '')" } })
+                @Html.ValidationMessageFor(model => model.InvoiceID, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.CustomerID, "Khách hàng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownListFor(model => model.CustomerID, (SelectList)ViewBag.Customers, "Chọn khách hàng", new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.Label("Ngày tạo hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.InvoiceDate, new { htmlAttributes = new { @class = "form-control", @type = "date" } })
+                @Html.ValidationMessageFor(model => model.InvoiceDate, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <h4>Chi tiết sản phẩm</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Tổng giá</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="invoiceDetails">
+                @{
+                    var InvoiceDetailsList = Model.InvoiceDetails.ToList();
+                    for (int i = 0; i < InvoiceDetailsList.Count; i++)
+                    {
+                        ViewBag.Index = i;
+                        @Html.Partial("_InvoiceDetailRow", InvoiceDetailsList[i])
+                    }
+                }
+            </tbody>
+        </table>
+        <button type="button" class="btn btn-success" id="addDetailRow">Thêm sản phẩm</button>
+
+        <div class="form-group">
+            <label class="control-label col-md-2">Tổng tiền</label>
+            <div class="col-md-10">
+                <input type="text" id="TotalPrice" class="form-control" readonly value="0.00" />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Lưu" class="btn btn-primary" />
+                <input type="reset" value="Nhập tiếp" class="btn btn-secondary" id="resetForm" />
+            </div>
+        </div>
+    </div>
+}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        // Add new detail row
+        $('#addDetailRow').click(function () {
+            $.ajax({
+                url: '@Url.Action("AddInvoiceDetail")',
+                type: 'POST',
+                success: function (data) {
+                    $('#invoiceDetails').append(data);
+                    updateRowNames();
+                }
+            });
+        });
+
+        // Remove detail row
+        $(document).on('click', '.remove-row', function () {
+            $(this).closest('tr').remove();
+            updateTotalPrice(); // Recalculate total price after removing a row
+            updateRowNames(); // Update row names after removing a row
+        });
+
+        // Update product price and total price
+        $(document).on('change', '.product-dropdown', function () {
+            var productID = $(this).val();
+            var $row = $(this).closest('.invoice-detail-row');
+            if (productID) {
+                $.ajax({
+                    url: '@Url.Action("GetProductPriceByID", "ThemHoaDon")',
+                    type: 'GET',
+                    data: { productID: productID },
+                    success: function (price) {
+                        $row.find('.unitPrice').val(price);
+                        updateRowPrice($row);
+                    }
+                });
+            }
+        });
+
+        // Update row price and total price when quantity changes
+        $(document).on('input', '.quantity', function () {
+            var $row = $(this).closest('.invoice-detail-row');
+            updateRowPrice($row);
+        });
+
+        // Function to update row price
+        function updateRowPrice($row) {
+            var quantity = parseFloat($row.find('.quantity').val()) || 0;
+            var unitPrice = parseFloat($row.find('.unitPrice').val()) || 0;
+            var totalPrice = quantity * unitPrice;
+            $row.find('.totalPrice').text(totalPrice.toFixed(2));
+            updateTotalPrice();
+        }
+
+        // Function to calculate and update total price
+        function updateTotalPrice() {
+            var total = 0;
+            $('#invoiceDetails .invoice-detail-row').each(function () {
+                var rowTotal = parseFloat($(this).find('.totalPrice').text()) || 0;
+                total += rowTotal;
+            });
+            $('#TotalPrice').val(total.toFixed(2));
+        }
+
+        // Function to update row names
+        function updateRowNames() {
+            $('#invoiceDetails .invoice-detail-row').each(function (index) {
+                $(this).find('input, select').each(function () {
+                    var name = $(this).attr('name');
+                    if (name) {
+                        var newName = name.replace(/\[\d+\]/, '[' + index + ']');
+                        $(this).attr('name', newName);
+                    }
+                });
+            });
+        }
+
+        // Reset the form and clear table rows except for the first
+        $('#resetForm').click(function () {
+            $('#invoiceDetails').empty();
+            $('#TotalPrice').val('0.00');
+            $('#addDetailRow').trigger('click'); // Add a single row after reset
+        });
+
+        // Initial call to update row names
+        updateRowNames();
+    });
+</script>
+

@@ -1,21 +1,22 @@
-﻿@model CuaHang.Models.InvoiceDetailsInfo
+﻿@model CuaHang.Models.ThongTinChiTietHoaDon
 
 <tr class="invoice-detail-row">
-    @Html.HiddenFor(model => model.InvoiceDetailID)
-    @Html.HiddenFor(model => model.InvoiceID)
     <td>
-        @Html.DropDownListFor(model => model.ProductID, (SelectList)ViewBag.Products, "Chọn sản phẩm", new { @class = "form-control product-dropdown" })
+        @Html.DropDownListFor(m => m.ProductID, (SelectList)ViewBag.Products, "Chọn sản phẩm", new { @class = "form-control product-dropdown" })
+        @Html.ValidationMessageFor(m => m.ProductID, "", new { @class = "text-danger" })
     </td>
     <td>
-        @Html.TextBoxFor(model => model.Quantity, new { @class = "form-control quantity", type = "number", min = "1" })
+        @Html.EditorFor(m => m.Quantity, new { htmlAttributes = new { @class = "form-control quantity" } })
+        @Html.ValidationMessageFor(m => m.Quantity, "", new { @class = "text-danger" })
     </td>
     <td>
-        <input type="text" class="form-control unitPrice" readonly />
+        <input type="text" class="form-control unitPrice" readonly value="@Model.TotalPrice / @Model.Quantity" />
     </td>
     <td>
-        <span class="totalPrice">0.00</span>
+        <span class="totalPrice">@Model.TotalPrice.ToString("0.00")</span>
     </td>
     <td>
         <button type="button" class="btn btn-danger remove-row">Xóa</button>
     </td>
 </tr>
+

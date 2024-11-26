@@ -1,0 +1,32 @@
+﻿@model List<CuaHang.Models.ThongTinKhachHang>
+@{
+    ViewBag.Title = "Danh sách khách hàng";
+}
+
+<br>
+<h2>Danh sách khách hàng</h2>
+<a class='btn btn-primary btn-sm' href='@Url.Action("Index", "ThemKhachHang")'>Thêm khách hàng</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Mã khách hàng</th>
+            <th>Tên khách hàng</th>
+            <th>Số điện thoại</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.CustomerID</td>
+                <td>@item.CustomerName</td>
+                <td>@item.Phone</td>
+                <td>
+                    <a class="btn btn-primary btn-sm" href='@Url.Action("Index", "ChinhSuaKhachHang", new { id = item.CustomerID })'>Thay đổi</a> |
+                    @Html.ActionLink("Xóa", "Index", "XoaKhachHang", new { id = item.CustomerID }, new { @class = "btn btn-danger btn-sm", onclick = "return confirm('Bạn có muốn xóa không');" })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

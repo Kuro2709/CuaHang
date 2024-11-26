@@ -1,0 +1,52 @@
+﻿@model CuaHang.Models.ThongTinSanPham
+
+@{
+    ViewBag.Title = "Thêm sản phẩm";
+}
+
+<h2>Thêm sản phẩm</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
+{
+    <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+}
+
+<form method="post" action="/ThemSanPham/Index">
+    @Html.AntiForgeryToken()
+
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Mã sản phẩm :</label>
+        <div class="col-sm-6">
+            <input type="text" class="form-control" name="ProductID" value="@Model.ProductID" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Tên sản phẩm:</label>
+        <div class="col-sm-6">
+            <input type="text" class="form-control" name="ProductName" value="@Model.ProductName" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <label class="col-sm-3 col-form-label">Giá thành:</label>
+        <div class="col-sm-6">
+            <input type="text" class="form-control" name="Price" value="@Model.Price" />
+        </div>
+    </div>
+    <div class="row mb-3">
+        <div class="offset-sm-3 col-sm-3 d-grid">
+            <button type="submit" class="btn btn-primary">Thêm</button>
+        </div>
+        <div class="col-sm-3 d-grid">
+            <a class="btn btn-outline-primary" href="/" role="button">Hủy</a>
+        </div>
+    </div>
+</form>
+
+
+
+
