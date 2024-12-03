@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace CuaHang.Models
 {
@@ -14,8 +14,8 @@ namespace CuaHang.Models
         public string ProductName { get; set; }
 
         [Required]
-        [Range(0, double.MaxValue, ErrorMessage = "Please enter a valid price")]
+        [Range(typeof(decimal), "0", "100000000", ErrorMessage = "Giá trị quá lớn hoặc quá nhỏ, vui lòng nhập giá trị hợp lệ")]
+        [RegularExpression(@"^\d+(\.\d{1,2})?$", ErrorMessage = "Giá thành chỉ được chứa số và tối đa hai chữ số thập phân")]
         public decimal Price { get; set; }
     }
 }
-
