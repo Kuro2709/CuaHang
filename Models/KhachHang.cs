@@ -15,6 +15,7 @@ namespace CuaHang.Models
 
         [Required]
         [StringLength(15)]
+        [RegularExpression(@"^\d+$", ErrorMessage = "Số điện thoại chỉ được chứa số và không có khoảng trắng")]
         public string Phone { get; set; }
     }
 }

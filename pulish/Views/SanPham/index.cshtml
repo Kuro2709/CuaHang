@@ -1,0 +1,41 @@
+﻿@model List<CuaHang.Models.ThongTinSanPham>
+
+@{
+    ViewBag.Title = "Danh sách sản phẩm";
+}
+
+<h2>Danh sách sản phẩm</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
+<p>
+    <a class='btn btn-primary btn-sm' href='/ThemSanPham/Index'>Thêm sản phẩm mới</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Mã sản phẩm</th>
+            <th>Tên sản phẩm</th>
+            <th>Giá</th>
+            <th>Hành động</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.ProductID</td>
+                <td>@item.ProductName</td>
+                <td>@item.Price</td>
+                <td>
+                    @Html.ActionLink("thay đổi", "Index", "ChinhSuaSanPham", new { id = item.ProductID }, new { @class = "btn btn-primary" }) |
+                    @Html.ActionLink("Xóa bỏ", "Index", "XoaSanPham", new { id = item.ProductID }, new { @class = "btn btn-danger", onclick = "return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?');" })
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+

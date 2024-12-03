@@ -1,5 +1,4 @@
-﻿using System.Web;
-using System.Web.Optimization;
+﻿using System.Web.Optimization;
 
 namespace CuaHang
 {
@@ -25,6 +24,17 @@ namespace CuaHang
             bundles.Add(new StyleBundle("~/Content/css").Include(
                       "~/Content/bootstrap.css",
                       "~/Content/site.css"));
+
+            // Kendo UI scripts and styles
+            bundles.Add(new ScriptBundle("~/bundles/kendo").Include(
+                      "~/Scripts/kendo/2024.4.1112/kendo.all.min.js"
+                      ));
+
+            bundles.Add(new StyleBundle("~/Content/kendo").Include(
+                      "~/Content/kendo/2024.4.1112/kendo.common.min.css"
+                      ));
         }
     }
 }
+
+

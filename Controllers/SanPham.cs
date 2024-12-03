@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Data.SqlClient;
 using System.Web.Mvc;
+using Microsoft.Data.SqlClient;
 using CuaHang.Models;
+using Kendo.Mvc.Extensions;
+using Kendo.Mvc.UI;
 
 namespace CuaHang.Controllers
 {
@@ -12,6 +14,11 @@ namespace CuaHang.Controllers
 
         // GET: Product
         public ActionResult Index()
+        {
+            return View();
+        }
+
+        public ActionResult GetProducts([DataSourceRequest] DataSourceRequest request)
         {
             List<ThongTinSanPham> listProducts = new List<ThongTinSanPham>();
 
@@ -44,38 +51,41 @@ namespace CuaHang.Controllers
                 Console.WriteLine("Exception: " + ex.Message);
             }
 
-            return View(listProducts);
+            return Json(listProducts.ToDataSourceResult(request), JsonRequestBehavior.AllowGet);
         }
 
-        // GET: Product/Delete/5
-        public ActionResult Delete(string id)
+        [HttpPost]
+        public ActionResult DeleteProduct([DataSourceRequest] DataSourceRequest request, ThongTinSanPham product)
         {
-            if (ProductHasInvoices(id))
+            if (product != null)
             {
-                TempData["ErrorMessage"] = "Không thể xóa sản phẩm. Sản phẩm đang có trong một hoặc nhiều hóa đơn.";
-                return RedirectToAction("Index");
-            }
-
-            // Proceed with deletion
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                if (ProductHasInvoices(product.ProductID))
                 {
-                    connection.Open();
-                    string sql = "DELETE FROM Product WHERE ProductID = @ProductID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    ModelState.AddModelError("", "Không thể xóa sản phẩm. Sản phẩm đang có trong một hoặc nhiều hóa đơn.");
+                }
+                else
+                {
+                    try
                     {
-                        command.Parameters.AddWithValue("@ProductID", id);
-                        command.ExecuteNonQuery();
+                        using (SqlConnection connection = new SqlConnection(connectionString))
+                        {
+                            connection.Open();
+                            string sql = "DELETE FROM Product WHERE ProductID = @ProductID";
+                            using (SqlCommand command = new SqlCommand(sql, connection))
+                            {
+                                command.Parameters.AddWithValue("@ProductID", product.ProductID);
+                                command.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Exception: " + ex.Message);
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Exception: " + ex.Message);
-            }
 
-            return RedirectToAction("Index");
+            return Json(new[] { product }.ToDataSourceResult(request, ModelState));
         }
 
         private bool ProductHasInvoices(string productId)
@@ -94,3 +104,4 @@ namespace CuaHang.Controllers
         }
     }
 }
+

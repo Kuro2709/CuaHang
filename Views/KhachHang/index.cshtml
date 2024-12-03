@@ -1,32 +1,79 @@
 ﻿@model List<CuaHang.Models.ThongTinKhachHang>
+@using Kendo.Mvc.UI
+
 @{
     ViewBag.Title = "Danh sách khách hàng";
 }
 
 <br>
 <h2>Danh sách khách hàng</h2>
-<a class='btn btn-primary btn-sm' href='@Url.Action("Index", "ThemKhachHang")'>Thêm khách hàng</a>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Mã khách hàng</th>
-            <th>Tên khách hàng</th>
-            <th>Số điện thoại</th>
-            <th>Hành động</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
+<a id="addCustomerButton" class='k-button' href='@Url.Action("Index", "ThemKhachHang")'>
+    <span class="k-icon k-i-plus"></span>
+</a>
+
+@(Html.Kendo().Grid<CuaHang.Models.ThongTinKhachHang>()
+    .Name("grid")
+    .Columns(columns =>
+    {
+        columns.Bound(c => c.CustomerID).Title("Mã khách hàng").Width(150);
+        columns.Bound(c => c.CustomerName).Title("Tên khách hàng").Width(250);
+        columns.Bound(c => c.Phone).Title("Số điện thoại").Width(150);
+        columns.Command(command =>
         {
-            <tr>
-                <td>@item.CustomerID</td>
-                <td>@item.CustomerName</td>
-                <td>@item.Phone</td>
-                <td>
-                    <a class="btn btn-primary btn-sm" href='@Url.Action("Index", "ChinhSuaKhachHang", new { id = item.CustomerID })'>Thay đổi</a> |
-                    @Html.ActionLink("Xóa", "Index", "XoaKhachHang", new { id = item.CustomerID }, new { @class = "btn btn-danger btn-sm", onclick = "return confirm('Bạn có muốn xóa không');" })
-                </td>
-            </tr>
+            command.Custom("Edit").Click("editCustomer").Text("Thay đổi").HtmlAttributes(new { @id = "ThayDoi", @class = "button" });
+            command.Custom("Delete").Click("deleteCustomer").Text("Xóa").HtmlAttributes(new { @id = "Xoa", @class = "button" });
+        }).Title("Hành động").Width(200);
+    })
+    .Pageable()
+    .Sortable()
+    .DataSource(dataSource => dataSource
+        .Ajax()
+        .Model(model => model.Id(c => c.CustomerID))
+        .Read(read => read.Action("GetCustomers", "KhachHang"))
+        .Destroy(destroy => destroy.Action("DeleteCustomer", "KhachHang"))
+    )
+)
+
+@section scripts {
+    <script>
+        $(document).ready(function() {
+            $("#addCustomerButton").kendoButton({
+                icon: "plus",
+                themeColor: "primary"
+            });
+
+            $("#ThayDoi").each(function() {
+                $(this).kendoButton({
+                    themeColor: "info"
+                });
+            });
+
+            $("#Xoa").each(function() {
+                $(this).kendoButton({
+                    themeColor: "error"
+                });
+            });
+        });
+
+        function editCustomer(e) {
+            e.preventDefault();
+            var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+            var url = '@Url.Action("Index", "ChinhSuaKhachHang", new { id = "__id__" })'.replace("__id__", dataItem.CustomerID);
+            window.location.href = url;
         }
-    </tbody>
-</table>
+
+        function deleteCustomer(e) {
+            e.preventDefault();
+            if (confirm('Bạn có muốn xóa không')) {
+                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+                var url = '@Url.Action("Index", "XoaKhachHang", new { id = "__id__" })'.replace("__id__", dataItem.CustomerID);
+                window.location.href = url;
+            }
+        }
+    </script>
+}
+
+
+
+
+

@@ -1,23 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Data.SqlClient;
 using System.Web.Mvc;
+using Microsoft.Data.SqlClient;
 using CuaHang.Models;
+using Kendo.Mvc.Extensions;
+using Kendo.Mvc.UI;
 
 namespace CuaHang.Controllers
 {
     public class HoaDonController : Controller
     {
-        public string errorMessage = "";
-        public string successMessage = "";
+        private readonly string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
 
         // GET: Invoice
         public ActionResult Index()
         {
+            return View();
+        }
+
+        public JsonResult GetInvoices([DataSourceRequest] DataSourceRequest request)
+        {
             List<ThongTinHoaDon> invoices = new List<ThongTinHoaDon>();
             try
             {
-                string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     connection.Open();
@@ -42,19 +47,10 @@ namespace CuaHang.Controllers
             }
             catch (Exception ex)
             {
-                errorMessage = "Exception: " + ex.Message;
-                ViewBag.ErrorMessage = errorMessage;
+                Console.WriteLine("Exception: " + ex.Message);
             }
 
-            return View(invoices);
+            return Json(invoices.ToDataSourceResult(request), JsonRequestBehavior.AllowGet);
         }
     }
 }
-
-
-
-
-
-
-
-

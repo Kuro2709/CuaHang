@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Data.SqlClient;
 using System.Web.Mvc;
+using Microsoft.Data.SqlClient;
 using CuaHang.Models;
+using Kendo.Mvc.Extensions;
+using Kendo.Mvc.UI;
 
 namespace CuaHang.Controllers
 {
@@ -12,6 +14,11 @@ namespace CuaHang.Controllers
 
         // GET: Customer
         public ActionResult Index()
+        {
+            return View();
+        }
+
+        public JsonResult GetCustomers([DataSourceRequest] DataSourceRequest request)
         {
             List<ThongTinKhachHang> listCustomers = new List<ThongTinKhachHang>();
 
@@ -44,38 +51,41 @@ namespace CuaHang.Controllers
                 Console.WriteLine("Exception: " + ex.Message);
             }
 
-            return View(listCustomers);
+            return Json(listCustomers.ToDataSourceResult(request), JsonRequestBehavior.AllowGet);
         }
 
-        // GET: Customer/Delete/5
-        public ActionResult Delete(string id)
+        [HttpPost]
+        public ActionResult DeleteCustomer([DataSourceRequest] DataSourceRequest request, ThongTinKhachHang customer)
         {
-            if (CustomerHasInvoices(id))
+            if (customer != null)
             {
-                TempData["ErrorMessage"] = "Không thể xóa khách hàng. Khách hàng đang có trong một hoặc nhiều hóa đơn.";
-                return RedirectToAction("Index");
-            }
-
-            // Proceed with deletion
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                if (CustomerHasInvoices(customer.CustomerID))
                 {
-                    connection.Open();
-                    string sql = "DELETE FROM Customer WHERE CustomerID = @CustomerID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    ModelState.AddModelError("", "Không thể xóa khách hàng. Khách hàng đang có trong một hoặc nhiều hóa đơn.");
+                }
+                else
+                {
+                    try
                     {
-                        command.Parameters.AddWithValue("@CustomerID", id);
-                        command.ExecuteNonQuery();
+                        using (SqlConnection connection = new SqlConnection(connectionString))
+                        {
+                            connection.Open();
+                            string sql = "DELETE FROM Customer WHERE CustomerID = @CustomerID";
+                            using (SqlCommand command = new SqlCommand(sql, connection))
+                            {
+                                command.Parameters.AddWithValue("@CustomerID", customer.CustomerID);
+                                command.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Exception: " + ex.Message);
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Exception: " + ex.Message);
-            }
 
-            return RedirectToAction("Index");
+            return Json(new[] { customer }.ToDataSourceResult(request, ModelState));
         }
 
         private bool CustomerHasInvoices(string customerId)
@@ -94,3 +104,7 @@ namespace CuaHang.Controllers
         }
     }
 }
+
+
+
+

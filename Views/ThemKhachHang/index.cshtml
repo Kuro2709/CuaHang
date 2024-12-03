@@ -16,37 +16,51 @@
     <div class="alert alert-success">@ViewBag.SuccessMessage</div>
 }
 
-@using (Html.BeginForm("Index", "ThemKhachHang", FormMethod.Post))
-{
+<form method="post" action="/ThemKhachHang/Index">
     @Html.AntiForgeryToken()
 
     <div class="row mb-3">
-        @Html.LabelFor(model => model.CustomerID, "Mã khách hàng", new { @class = "col-sm-3 col-form-label" })
+        <label class="col-sm-3 col-form-label">Mã khách hàng :</label>
         <div class="col-sm-6">
-            @Html.EditorFor(model => model.CustomerID, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger" })
+            <input type="text" class="form-control" name="CustomerID" value="@Model.CustomerID" id="CustomerID" />
         </div>
     </div>
     <div class="row mb-3">
-        @Html.LabelFor(model => model.CustomerName, "Tên khách hàng", new { @class = "col-sm-3 col-form-label" })
+        <label class="col-sm-3 col-form-label">Tên khách hàng:</label>
         <div class="col-sm-6">
-            @Html.EditorFor(model => model.CustomerName, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.CustomerName, "", new { @class = "text-danger" })
+            <input type="text" class="form-control" name="CustomerName" value="@Model.CustomerName" />
         </div>
     </div>
     <div class="row mb-3">
-        @Html.LabelFor(model => model.Phone, "Số điện thoại", new { @class = "col-sm-3 col-form-label" })
+        <label class="col-sm-3 col-form-label">Số điện thoại:</label>
         <div class="col-sm-6">
-            @Html.EditorFor(model => model.Phone, new { htmlAttributes = new { @class = "form-control" } })
-            @Html.ValidationMessageFor(model => model.Phone, "", new { @class = "text-danger" })
+            <input type="text" class="form-control" name="Phone" value="@Model.Phone" id="Phone" />
         </div>
     </div>
     <div class="row mb-3">
         <div class="offset-sm-3 col-sm-3 d-grid">
-            <button type="submit" class="btn btn-primary">Thêm</button>
+            <button type="submit" class="btn btn-primary">Nhập tiếp</button>
         </div>
         <div class="col-sm-3 d-grid">
             <a class="btn btn-outline-primary" href="/" role="button">Hủy</a>
         </div>
     </div>
+</form>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $('#CustomerID').on('input', function () {
+                var value = $(this).val().toUpperCase().replace(/\s/g, '');
+                $(this).val(value);
+            });
+
+            $('#Phone').on('input', function () {
+                var value = $(this).val().replace(/\D/g, '');
+                $(this).val(value);
+            });
+        });
+    </script>
 }
+
+

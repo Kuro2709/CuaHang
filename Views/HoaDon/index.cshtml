@@ -1,51 +1,87 @@
 ﻿@model List<CuaHang.Models.ThongTinHoaDon>
+@using Kendo.Mvc.UI
 
 @{
     ViewBag.Title = "Danh sách hóa đơn";
 }
 
+<br>
 <h2>Danh sách hóa đơn</h2>
+<a id="addInvoiceButton" class='k-button' href='@Url.Action("Index", "ThemHoaDon")'>
+    <span class="k-icon k-i-plus"></span>
+</a>
 
-@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
-{
-    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
-}
-
-<p>
-    @Html.ActionLink("Tạo hóa đơn mới", "Index", "ThemHoaDon", null, new { @class = "btn btn-primary" })
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>InvoiceID</th>
-            <th>Tên khách hàng</th>
-            <th>Tổng giá</th>
-            <th>Hành động</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
+@(Html.Kendo().Grid<CuaHang.Models.ThongTinHoaDon>()
+    .Name("grid")
+    .Columns(columns =>
+    {
+        columns.Bound(c => c.InvoiceID).Title("InvoiceID").Width(150);
+        columns.Bound(c => c.Customer.CustomerName).Title("Tên khách hàng").Width(250);
+        columns.Bound(c => c.TotalPrice).Title("Tổng giá").Width(150);
+        columns.Command(command =>
         {
-            <tr>
-                <td>@item.InvoiceID</td>
-                <td>@item.Customer.CustomerName</td>
-                <td>@item.TotalPrice</td>
-                <td>
-                    @Html.ActionLink("chi tiết hóa đơn", "Index", "ChiTietHoaDon", new { id = item.InvoiceID }, new { @class = "btn btn-info" }) |
-                    @Html.ActionLink("Thay đổi", "Index", "ChinhSuaHoaDon", new { id = item.InvoiceID }, new { @class = "btn btn-primary" }) |
-                    @Html.ActionLink("Xóa", "Index", "XoaHoaDon", new { id = item.InvoiceID }, new { @class = "btn btn-danger", onclick = "return confirm('Bạn có muốn xóa không');" })
-                </td>
-            </tr>
+            command.Custom("Details").Click("viewInvoiceDetails").Text("Chi Tiết").HtmlAttributes(new { @id = "ChiTiet", @class = "button" });
+            command.Custom("Edit").Click("editInvoice").Text("Thay đổi").HtmlAttributes(new { @id = "ThayDoi", @class = "button" });
+            command.Custom("Delete").Click("deleteInvoice").Text("Xóa").HtmlAttributes(new { @id = "Xoa", @class = "button" });
+        }).Title("Hành động").Width(300);
+    })
+    .Pageable()
+    .Sortable()
+    .DataSource(dataSource => dataSource
+        .Ajax()
+        .Model(model => model.Id(c => c.InvoiceID))
+        .Read(read => read.Action("GetInvoices", "HoaDon"))
+    )
+)
+
+@section scripts {
+    <script>
+        $(document).ready(function() {
+            $("#addInvoiceButton").kendoButton({
+                icon: "plus",
+                themeColor: "primary"
+            });
+
+            $("#ChiTiet").each(function() {
+                $(this).kendoButton({
+                    themeColor: "info"
+                });
+            });
+
+            $("#ThayDoi").each(function() {
+                $(this).kendoButton({
+                    themeColor: "info"
+                });
+            });
+
+            $("#Xoa").each(function() {
+                $(this).kendoButton({
+                    themeColor: "error"
+                });
+            });
+        });
+
+        function viewInvoiceDetails(e) {
+            e.preventDefault();
+            var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+            var url = '@Url.Action("Index", "ChiTietHoaDon", new { id = "__id__" })'.replace("__id__", dataItem.InvoiceID);
+            window.location.href = url;
         }
-    </tbody>
-</table>
 
+        function editInvoice(e) {
+            e.preventDefault();
+            var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+            var url = '@Url.Action("Index", "ChinhSuaHoaDon", new { id = "__id__" })'.replace("__id__", dataItem.InvoiceID);
+            window.location.href = url;
+        }
 
-
-
-
-
-
-
-
-
+        function deleteInvoice(e) {
+            e.preventDefault();
+            if (confirm('Bạn có muốn xóa không')) {
+                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+                var url = '@Url.Action("Index", "XoaHoaDon", new { id = "__id__" })'.replace("__id__", dataItem.InvoiceID);
+                window.location.href = url;
+            }
+        }
+    </script>
+}

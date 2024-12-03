@@ -75,7 +75,7 @@ namespace CuaHang.Controllers
                             command.ExecuteNonQuery();
                         }
                     }
-                    successMessage = "ChinhSuaKhachHangThanhCong";
+                    successMessage = "Chinh Sua Khach Hang Thanh Cong";
                     ViewBag.SuccessMessage = successMessage;
                     return RedirectToAction("Index", "KhachHang");
                 }
@@ -91,3 +91,4 @@ namespace CuaHang.Controllers
         }
     }
 }
+
