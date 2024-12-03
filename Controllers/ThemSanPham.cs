@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Data.SqlClient;
 using System.Web.Mvc;
 using CuaHang.Models;
@@ -23,9 +23,19 @@ namespace CuaHang.Controllers
         {
             if (ModelState.IsValid)
             {
+                // Trim spaces and convert ProductID to uppercase
+                productInfo.ProductID = productInfo.ProductID?.Trim().ToUpper();
+
                 if (string.IsNullOrEmpty(productInfo.ProductID) || string.IsNullOrEmpty(productInfo.ProductName) || productInfo.Price <= 0)
                 {
                     errorMessage = "Tất cả các mục đều bắt buộc, không được để trống";
+                    ViewBag.ErrorMessage = errorMessage;
+                    return View(productInfo);
+                }
+
+                if (productInfo.ProductID.Contains(" "))
+                {
+                    errorMessage = "Mã sản phẩm không được chứa khoảng trắng";
                     ViewBag.ErrorMessage = errorMessage;
                     return View(productInfo);
                 }
