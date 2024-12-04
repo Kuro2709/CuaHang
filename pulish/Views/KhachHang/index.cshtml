@@ -11,6 +11,11 @@
     <span class="k-icon k-i-plus"></span>
 </a>
 
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
 @(Html.Kendo().Grid<CuaHang.Models.ThongTinKhachHang>()
     .Name("grid")
     .Columns(columns =>
@@ -20,8 +25,8 @@
         columns.Bound(c => c.Phone).Title("Số điện thoại").Width(150);
         columns.Command(command =>
         {
-            command.Custom("Edit").Click("editCustomer").Text("Thay đổi").HtmlAttributes(new { @id = "ThayDoi", @class = "button" });
-            command.Custom("Delete").Click("deleteCustomer").Text("Xóa").HtmlAttributes(new { @id = "Xoa", @class = "button" });
+            command.Custom("Edit").Click("editCustomer").Text("Thay đổi").HtmlAttributes(new { @class = "k-button k-button-info" });
+            command.Destroy().HtmlAttributes(new { @class = "k-button k-button-error" }).Text("Xóa bỏ");
         }).Title("Hành động").Width(200);
     })
     .Pageable()
@@ -31,8 +36,10 @@
         .Model(model => model.Id(c => c.CustomerID))
         .Read(read => read.Action("GetCustomers", "KhachHang"))
         .Destroy(destroy => destroy.Action("DeleteCustomer", "KhachHang"))
+        .Events(events => events.Error("onDataSourceError")) // Attach error event
     )
 )
+
 
 @section scripts {
     <script>
@@ -42,18 +49,35 @@
                 themeColor: "primary"
             });
 
-            $("#ThayDoi").each(function() {
-                $(this).kendoButton({
-                    themeColor: "info"
-                });
+            $(".k-button-info").kendoButton({
+                themeColor: "info"
             });
 
-            $("#Xoa").each(function() {
-                $(this).kendoButton({
-                    themeColor: "error"
-                });
+            $(".k-button-error").kendoButton({
+                themeColor: "error"
             });
         });
+
+        function onDataSourceError(e) {
+            console.log("Error event triggered:", e);
+
+            if (e.errors) {
+                var message = "";
+                for (var key in e.errors) {
+                    if (e.errors[key].errors) {
+                        message += e.errors[key].errors.join("\n");
+                    }
+                }
+                alert(message); // Display the error message
+            } else {
+                alert("An unexpected error occurred.");
+            }
+
+            // Refresh the grid to reflect the server state
+            var grid = $("#grid").data("kendoGrid");
+            grid.dataSource.read();
+        }
+
 
         function editCustomer(e) {
             e.preventDefault();
@@ -62,18 +86,5 @@
             window.location.href = url;
         }
 
-        function deleteCustomer(e) {
-            e.preventDefault();
-            if (confirm('Bạn có muốn xóa không')) {
-                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
-                var url = '@Url.Action("Index", "XoaKhachHang", new { id = "__id__" })'.replace("__id__", dataItem.CustomerID);
-                window.location.href = url;
-            }
-        }
     </script>
 }
-
-
-
-
-

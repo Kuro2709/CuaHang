@@ -10,7 +10,7 @@
         @Html.ValidationMessageFor(m => m.Quantity, "", new { @class = "text-danger" })
     </td>
     <td>
-        <input type="text" class="form-control unitPrice" readonly value="@Model.TotalPrice / @Model.Quantity" />
+        <input type="text" class="form-control unitPrice" readonly value="@(Model.Quantity != 0 ? (Model.TotalPrice / Model.Quantity).ToString("0.00") : "0.00")" />
     </td>
     <td>
         <span class="totalPrice">@Model.TotalPrice.ToString("0.00")</span>

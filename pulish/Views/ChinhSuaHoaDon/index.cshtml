@@ -76,7 +76,7 @@
 
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Nhập tiếp" class="btn btn-primary" />
+                <input type="submit" value="Lưu" class="btn btn-primary" />
                 <a href="@Url.Action("Index", "HoaDon")" class="btn btn-secondary">Quay lại</a>
             </div>
         </div>
@@ -121,6 +121,11 @@
             var productID = $(this).val();
             var $row = $(this).closest('.invoice-detail-row');
             if (productID) {
+                if (isProductDuplicate(productID, $row)) {
+                    alert("Sản phẩm này đã được chọn. Vui lòng chọn sản phẩm khác.");
+                    $(this).data("kendoDropDownList").value(""); // Reset the dropdown value
+                    return;
+                }
                 $.ajax({
                     url: '@Url.Action("GetProductPriceByID", "ThemHoaDon")',
                     type: 'GET',
@@ -169,6 +174,18 @@
                     }
                 });
             });
+        }
+
+        // Function to check for duplicate products
+        function isProductDuplicate(productID, currentRow) {
+            var isDuplicate = false;
+            $('#invoiceDetails .product-dropdown').each(function () {
+                if ($(this).closest('.invoice-detail-row')[0] !== currentRow[0] && $(this).val() === productID) {
+                    isDuplicate = true;
+                    return false; // Break the loop
+                }
+            });
+            return isDuplicate;
         }
 
         // Reset the form and clear table rows except for the first
@@ -223,9 +240,3 @@
         }
     });
 </script>
-
-
-
-
-
-

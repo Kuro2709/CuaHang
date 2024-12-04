@@ -141,6 +141,11 @@
         // Update row price and total price when quantity changes
         $(document).on('input', '.quantity', function () {
             var $row = $(this).closest('.invoice-detail-row');
+            var quantity = parseFloat($(this).val()) || 0;
+            if (quantity <= 0) {
+                alert("Số lượng phải lớn hơn 0.");
+                $(this).val(1); // Reset to 1 if the quantity is less than or equal to 0
+            }
             updateRowPrice($row);
         });
 

@@ -16,6 +16,7 @@
     <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
 }
 
+    
 @(Html.Kendo().Grid<CuaHang.Models.ThongTinSanPham>()
     .Name("grid")
     .Columns(columns =>
@@ -26,7 +27,7 @@
         columns.Command(command =>
         {
             command.Custom("Edit").Click("editProduct").Text("Thay đổi").HtmlAttributes(new { @class = "k-button k-button-info" });
-            command.Custom("Delete").Click("deleteProduct").Text("Xóa bỏ").HtmlAttributes(new { @class = "k-button k-button-error" });
+            command.Destroy().HtmlAttributes(new { @class = "k-button k-button-error" }).Text("Xóa bỏ");
         }).Title("Hành động").Width(200);
     })
     .Pageable()
@@ -36,12 +37,13 @@
         .Model(model => model.Id(p => p.ProductID))
         .Read(read => read.Action("GetProducts", "SanPham"))
         .Destroy(destroy => destroy.Action("DeleteProduct", "SanPham"))
+        .Events(events => events.Error("onDataSourceError")) // Attach the error event here
     )
 )
 
 @section scripts {
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $("#addProductButton").kendoButton({
                 icon: "plus",
                 themeColor: "primary"
@@ -56,20 +58,28 @@
             });
         });
 
+        function onDataSourceError(e) {
+            if (e.errors) {
+                var message = "";
+                for (var key in e.errors) {
+                    if (e.errors[key].errors) {
+                        message += e.errors[key].errors.join("\n");
+                    }
+                }
+                alert(message); // Display the error message
+            } else {
+                alert("An unexpected error occurred.");
+            }
+
+            var grid = $("#grid").data("kendoGrid");
+            grid.dataSource.read();
+        }
+
         function editProduct(e) {
             e.preventDefault();
             var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
             var url = '@Url.Action("Index", "ChinhSuaSanPham", new { id = "__id__" })'.replace("__id__", dataItem.ProductID);
             window.location.href = url;
-        }
-
-        function deleteProduct(e) {
-            e.preventDefault();
-            if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?')) {
-                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
-                var url = '@Url.Action("Index", "XoaSanPham", new { id = "__id__" })'.replace("__id__", dataItem.ProductID);
-                window.location.href = url;
-            }
         }
     </script>
 }
