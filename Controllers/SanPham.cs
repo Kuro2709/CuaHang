@@ -80,7 +80,7 @@ namespace CuaHang.Controllers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Exception: " + ex.Message);
+                        ModelState.AddModelError("ProductDeleteError", "Có lỗi xảy ra khi xóa sản phẩm: " + ex.Message);
                     }
                 }
             }

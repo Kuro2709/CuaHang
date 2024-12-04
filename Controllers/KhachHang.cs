@@ -80,13 +80,15 @@ namespace CuaHang.Controllers
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Exception: " + ex.Message);
+                        ModelState.AddModelError("CustomerDeleteError", "Có lỗi xảy ra khi xóa khách hàng: " + ex.Message);
                     }
                 }
             }
 
             return Json(new[] { customer }.ToDataSourceResult(request, ModelState));
         }
+
+
 
         private bool CustomerHasInvoices(string customerId)
         {
@@ -104,7 +106,3 @@ namespace CuaHang.Controllers
         }
     }
 }
-
-
-
-

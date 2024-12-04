@@ -4,59 +4,64 @@
     ViewBag.Title = "Thêm sản phẩm";
 }
 
-<h2>Thêm sản phẩm</h2>
+<h2 style="text-align: center;">Thêm sản phẩm</h2>
 
 @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
 {
-    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+    <div class="alert alert-danger" style="text-align: center;">@ViewBag.ErrorMessage</div>
 }
 
 @if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
 {
-    <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+    <div class="alert alert-success" style="text-align: center;">@ViewBag.SuccessMessage</div>
 }
 
-<form method="post" action="/ThemSanPham/Index">
+@using (Html.BeginForm("Index", "ThemSanPham", FormMethod.Post))
+{
     @Html.AntiForgeryToken()
 
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Mã sản phẩm :</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="ProductID" value="@Model.ProductID" id="ProductID" />
-        </div>
-    </div>
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Tên sản phẩm:</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="ProductName" value="@Model.ProductName" />
-        </div>
-    </div>
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Giá thành:</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="Price" value="@Model.Price" id="Price" />
-        </div>
-    </div>
-    <div class="row mb-3">
-        <div class="offset-sm-3 col-sm-3 d-grid">
-            <button type="submit" class="btn btn-primary">Nhập tiếp</button>
-        </div>
-        <div class="col-sm-3 d-grid">
-            <a class="btn btn-outline-primary" href="/" role="button">Hủy</a>
-        </div>
-    </div>
-</form>
+    <div class="k-form k-form-horizontal" style="max-width: 600px; margin: 0 auto;">
+        <h4 style="text-align: center;">Thông tin sản phẩm</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "text-align: center;" })
 
-@section scripts {
+        <div class="k-form-field" style="text-align: center;">
+            @Html.LabelFor(model => model.ProductID, "Mã sản phẩm", new { @class = "k-label", style = "display: block; text-align: center;" })
+            @Html.Kendo().TextBoxFor(model => model.ProductID).HtmlAttributes(new { @class = "k-textbox", style = "width: 200px; margin: 0 auto;", @id = "ProductID" })
+            @Html.ValidationMessageFor(model => model.ProductID, "", new { @class = "text-danger", style = "text-align: center;" })
+        </div>
+
+        <div class="k-form-field" style="text-align: center;">
+            @Html.LabelFor(model => model.ProductName, "Tên sản phẩm", new { @class = "k-label", style = "display: block; text-align: center;" })
+            @Html.Kendo().TextBoxFor(model => model.ProductName).HtmlAttributes(new { @class = "k-textbox", style = "width: 200px; margin: 0 auto;" })
+            @Html.ValidationMessageFor(model => model.ProductName, "", new { @class = "text-danger", style = "text-align: center;" })
+        </div>
+
+        <div class="k-form-field" style="text-align: center;">
+            @Html.LabelFor(model => model.Price, "Giá thành", new { @class = "k-label", style = "display: block; text-align: center;" })
+            @Html.Kendo().NumericTextBoxFor(model => model.Price).HtmlAttributes(new { @class = "k-textbox", style = "width: 200px; margin: 0 auto;" })
+            @Html.ValidationMessageFor(model => model.Price, "", new { @class = "text-danger", style = "text-align: center;" })
+        </div>
+
+        <div class="k-form-buttons" style="text-align: center; margin-top: 20px;">
+            <div style="display: inline-block; margin-left: 200px;">
+                <input type="submit" value="Nhập tiếp" class="k-button k-primary" style="width: 100px; margin-right: 10px;" />
+                <a class="k-button k-secondary" href="/" style="width: 100px;">Hủy</a>
+            </div>
+        </div>
+    </div>
+}
+
+<div style="text-align: center; margin-top: 20px;">
+    @Html.ActionLink("Quay lại", "Index", "SanPham", null, new { @class = "k-button k-secondary", style = "width: 100px;" })
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
     <script>
         $(document).ready(function () {
             $('#ProductID').on('input', function () {
                 var value = $(this).val().toUpperCase().replace(/\s/g, '');
-                $(this).val(value);
-            });
-
-            $('#Price').on('input', function () {
-                var value = $(this).val().replace(/[^0-9.]/g, '');
                 $(this).val(value);
             });
         });

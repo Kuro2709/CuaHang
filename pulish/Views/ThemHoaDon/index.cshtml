@@ -1,4 +1,4 @@
-﻿﻿@model CuaHang.Models.ThongTinHoaDon
+﻿@model CuaHang.Models.ThongTinHoaDon
 
 @{
     ViewBag.Title = "Thêm hóa đơn mới";
@@ -22,7 +22,7 @@
         <div class="form-group">
             @Html.Label("Mã hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.InvoiceID, new { htmlAttributes = new { @class = "form-control", @oninput = "this.value = this.value.toUpperCase().replace(/\\s/g, '')" } })
+                @Html.EditorFor(model => model.InvoiceID, new { htmlAttributes = new { @class = "form-control", @id = "InvoiceID" } })
                 @Html.ValidationMessageFor(model => model.InvoiceID, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -30,15 +30,16 @@
         <div class="form-group">
             @Html.LabelFor(model => model.CustomerID, "Khách hàng", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownListFor(model => model.CustomerID, (SelectList)ViewBag.Customers, "Chọn khách hàng", new { @class = "form-control" })
+                @Html.DropDownListFor(model => model.CustomerID, (SelectList)ViewBag.Customers, "Chọn khách hàng", new { @class = "form-control customer-dropdown small-dropdown" })
                 @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger" })
+                @Html.Hidden("SelectedCustomerID", Model.CustomerID)
             </div>
         </div>
 
         <div class="form-group">
             @Html.Label("Ngày tạo hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.InvoiceDate, new { htmlAttributes = new { @class = "form-control", @type = "date" } })
+                @Html.EditorFor(model => model.InvoiceDate, new { htmlAttributes = new { @class = "form-control kendo-datepicker" } })
                 @Html.ValidationMessageFor(model => model.InvoiceDate, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -76,16 +77,24 @@
 
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Lưu" class="btn btn-primary" />
-                <input type="reset" value="Nhập tiếp" class="btn btn-secondary" id="resetForm" />
+                <input type="submit" value="Nhập tiếp" class="btn btn-primary" />
+                <a href="@Url.Action("Index", "HoaDon")" class="btn btn-secondary">Quay lại</a>
             </div>
         </div>
     </div>
 }
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script type="text/javascript">
+<style>
+    .small-dropdown {
+        width: 20%;
+    }
+</style>
+
+<script>
     $(document).ready(function () {
+        // Initialize Kendo UI components
+        initializeKendoComponents();
+
         // Add new detail row
         $('#addDetailRow').click(function () {
             $.ajax({
@@ -94,6 +103,7 @@
                 success: function (data) {
                     $('#invoiceDetails').append(data);
                     updateRowNames();
+                    initializeKendoComponentsForNewRow(); // Initialize Kendo UI components only for the new row
                 }
             });
         });
@@ -169,5 +179,46 @@
 
         // Initial call to update row names
         updateRowNames();
+
+        // Function to initialize Kendo UI components
+        function initializeKendoComponents() {
+            // Store the selected value of the customer dropdown
+            var selectedCustomerID = $(".customer-dropdown").val();
+
+            // Destroy existing Kendo UI components
+            $(".kendo-datepicker").each(function () {
+                var datepicker = $(this).data("kendoDatePicker");
+                if (datepicker) {
+                    datepicker.destroy();
+                }
+            });
+
+            // Reinitialize Kendo UI components with data source
+            $(".customer-dropdown").kendoDropDownList({
+                dataSource: @Html.Raw(Json.Encode(ViewBag.Customers)),
+                dataTextField: "Text",
+                dataValueField: "Value",
+                value: selectedCustomerID // Set the selected value directly here
+            });
+
+            $(".product-dropdown").kendoDropDownList({
+                dataSource: @Html.Raw(Json.Encode(ViewBag.Products)),
+                dataTextField: "Text",
+                dataValueField: "Value"
+            });
+
+            $(".kendo-datepicker").kendoDatePicker({
+                format: "yyyy-MM-dd"
+            });
+        }
+
+        // Function to initialize Kendo UI components for new row
+        function initializeKendoComponentsForNewRow() {
+            $(".product-dropdown").last().kendoDropDownList({
+                dataSource: @Html.Raw(Json.Encode(ViewBag.Products)),
+                dataTextField: "Text",
+                dataValueField: "Value"
+            });
+        }
     });
 </script>
