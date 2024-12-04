@@ -15,7 +15,7 @@
     .Name("grid")
     .Columns(columns =>
     {
-        columns.Bound(c => c.InvoiceID).Title("InvoiceID").Width(150);
+        columns.Bound(c => c.InvoiceID).Title("Mã số hóa đơn").Width(150);
         columns.Bound(c => c.Customer.CustomerName).Title("Tên khách hàng").Width(250);
         columns.Bound(c => c.TotalPrice).Title("Tổng giá").Width(150);
         columns.Command(command =>

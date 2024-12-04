@@ -4,50 +4,60 @@
     ViewBag.Title = "Thêm khách hàng";
 }
 
-<h2>Thêm khách hàng</h2>
+<h2 style="text-align: center;">Thêm khách hàng</h2>
 
 @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
 {
-    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+    <div class="alert alert-danger" style="text-align: center;">@ViewBag.ErrorMessage</div>
 }
 
 @if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
 {
-    <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+    <div class="alert alert-success" style="text-align: center;">@ViewBag.SuccessMessage</div>
 }
 
-<form method="post" action="/ThemKhachHang/Index">
+@using (Html.BeginForm("Index", "ThemKhachHang", FormMethod.Post))
+{
     @Html.AntiForgeryToken()
 
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Mã khách hàng :</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="CustomerID" value="@Model.CustomerID" id="CustomerID" />
-        </div>
-    </div>
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Tên khách hàng:</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="CustomerName" value="@Model.CustomerName" />
-        </div>
-    </div>
-    <div class="row mb-3">
-        <label class="col-sm-3 col-form-label">Số điện thoại:</label>
-        <div class="col-sm-6">
-            <input type="text" class="form-control" name="Phone" value="@Model.Phone" id="Phone" />
-        </div>
-    </div>
-    <div class="row mb-3">
-        <div class="offset-sm-3 col-sm-3 d-grid">
-            <button type="submit" class="btn btn-primary">Nhập tiếp</button>
-        </div>
-        <div class="col-sm-3 d-grid">
-            <a class="btn btn-outline-primary" href="/" role="button">Hủy</a>
-        </div>
-    </div>
-</form>
+    <div class="k-form k-form-horizontal" style="max-width: 600px; margin: 0 auto;">
+        <h4 style="text-align: center;">Thông tin khách hàng</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger", style = "text-align: center;" })
 
-@section scripts {
+        <div class="k-form-field" style="text-align: center;">
+            @Html.LabelFor(model => model.CustomerID, "Mã khách hàng", new { @class = "k-label", style = "display: block; text-align: center;" })
+            @Html.Kendo().TextBoxFor(model => model.CustomerID).HtmlAttributes(new { @class = "k-textbox", style = "width: 200px; margin: 0 auto;", @id = "CustomerID" })
+            @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger", style = "text-align: center;" })
+        </div>
+
+        <div class="k-form-field" style="text-align: center;">
+            @Html.LabelFor(model => model.CustomerName, "Tên khách hàng", new { @class = "k-label", style = "display: block; text-align: center;" })
+            @Html.Kendo().TextBoxFor(model => model.CustomerName).HtmlAttributes(new { @class = "k-textbox", style = "width: 200px; margin: 0 auto;" })
+            @Html.ValidationMessageFor(model => model.CustomerName, "", new { @class = "text-danger", style = "text-align: center;" })
+        </div>
+
+        <div class="k-form-field" style="text-align: center;">
+            @Html.LabelFor(model => model.Phone, "Số điện thoại", new { @class = "k-label", style = "display: block; text-align: center;" })
+            @Html.Kendo().MaskedTextBoxFor(model => model.Phone).Mask("(000) 000-0000").HtmlAttributes(new { @class = "k-textbox", style = "width: 200px; margin: 0 auto;", @id = "Phone" })
+            @Html.ValidationMessageFor(model => model.Phone, "", new { @class = "text-danger", style = "text-align: center;" })
+        </div>
+
+        <div class="k-form-buttons" style="text-align: center; margin-top: 20px;">
+            <div style="display: inline-block; margin-left: 200px;">
+                <input type="submit" value="Nhập tiếp" class="k-button k-primary" style="width: 100px; margin-right: 10px;" />
+                <a class="k-button k-secondary" href="/" style="width: 100px;">Hủy</a>
+            </div>
+        </div>
+    </div>
+}
+
+<div style="text-align: center; margin-top: 20px;">
+    @Html.ActionLink("Quay lại", "Index", "KhachHang", null, new { @class = "k-button k-secondary", style = "width: 100px;" })
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
     <script>
         $(document).ready(function () {
             $('#CustomerID').on('input', function () {
@@ -57,10 +67,11 @@
 
             $('#Phone').on('input', function () {
                 var value = $(this).val().replace(/\D/g, '');
+                if (value.length > 10) {
+                    value = value.substring(0, 10);
+                }
                 $(this).val(value);
             });
         });
     </script>
 }
-
-

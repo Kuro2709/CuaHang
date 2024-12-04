@@ -26,7 +26,7 @@
         columns.Command(command =>
         {
             command.Custom("Edit").Click("editProduct").Text("Thay đổi").HtmlAttributes(new { @class = "k-button k-button-info" });
-            command.Custom("Delete").Click("deleteProduct").Text("Xóa bỏ").HtmlAttributes(new { @class = "k-button k-button-warning" });
+            command.Custom("Delete").Click("deleteProduct").Text("Xóa bỏ").HtmlAttributes(new { @class = "k-button k-button-error" });
         }).Title("Hành động").Width(200);
     })
     .Pageable()
@@ -51,8 +51,8 @@
                 themeColor: "info"
             });
 
-            $(".k-button-warning").kendoButton({
-                themeColor: "warning"
+            $(".k-button-error").kendoButton({
+                themeColor: "error"
             });
         });
 
@@ -73,5 +73,3 @@
         }
     </script>
 }
-
-

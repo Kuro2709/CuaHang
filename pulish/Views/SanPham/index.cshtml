@@ -1,41 +1,77 @@
 ﻿@model List<CuaHang.Models.ThongTinSanPham>
+@using Kendo.Mvc.UI
 
 @{
     ViewBag.Title = "Danh sách sản phẩm";
 }
 
+<br>
 <h2>Danh sách sản phẩm</h2>
+<a id="addProductButton" class='k-button' href='@Url.Action("Index", "ThemSanPham")'>
+    <span class="k-icon k-i-plus"></span>
+</a>
 
 @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
 {
     <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
 }
 
-<p>
-    <a class='btn btn-primary btn-sm' href='/ThemSanPham/Index'>Thêm sản phẩm mới</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Mã sản phẩm</th>
-            <th>Tên sản phẩm</th>
-            <th>Giá</th>
-            <th>Hành động</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
+@(Html.Kendo().Grid<CuaHang.Models.ThongTinSanPham>()
+    .Name("grid")
+    .Columns(columns =>
+    {
+        columns.Bound(p => p.ProductID).Title("Mã sản phẩm").Width(150);
+        columns.Bound(p => p.ProductName).Title("Tên sản phẩm").Width(250);
+        columns.Bound(p => p.Price).Title("Giá").Width(150);
+        columns.Command(command =>
         {
-            <tr>
-                <td>@item.ProductID</td>
-                <td>@item.ProductName</td>
-                <td>@item.Price</td>
-                <td>
-                    @Html.ActionLink("thay đổi", "Index", "ChinhSuaSanPham", new { id = item.ProductID }, new { @class = "btn btn-primary" }) |
-                    @Html.ActionLink("Xóa bỏ", "Index", "XoaSanPham", new { id = item.ProductID }, new { @class = "btn btn-danger", onclick = "return confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?');" })
-                </td>
-            </tr>
+            command.Custom("Edit").Click("editProduct").Text("Thay đổi").HtmlAttributes(new { @class = "k-button k-button-info" });
+            command.Custom("Delete").Click("deleteProduct").Text("Xóa bỏ").HtmlAttributes(new { @class = "k-button k-button-warning" });
+        }).Title("Hành động").Width(200);
+    })
+    .Pageable()
+    .Sortable()
+    .DataSource(dataSource => dataSource
+        .Ajax()
+        .Model(model => model.Id(p => p.ProductID))
+        .Read(read => read.Action("GetProducts", "SanPham"))
+        .Destroy(destroy => destroy.Action("DeleteProduct", "SanPham"))
+    )
+)
+
+@section scripts {
+    <script>
+        $(document).ready(function() {
+            $("#addProductButton").kendoButton({
+                icon: "plus",
+                themeColor: "primary"
+            });
+
+            $(".k-button-info").kendoButton({
+                themeColor: "info"
+            });
+
+            $(".k-button-warning").kendoButton({
+                themeColor: "warning"
+            });
+        });
+
+        function editProduct(e) {
+            e.preventDefault();
+            var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+            var url = '@Url.Action("Index", "ChinhSuaSanPham", new { id = "__id__" })'.replace("__id__", dataItem.ProductID);
+            window.location.href = url;
         }
-    </tbody>
-</table>
+
+        function deleteProduct(e) {
+            e.preventDefault();
+            if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này không?')) {
+                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
+                var url = '@Url.Action("Index", "XoaSanPham", new { id = "__id__" })'.replace("__id__", dataItem.ProductID);
+                window.location.href = url;
+            }
+        }
+    </script>
+}
+
 

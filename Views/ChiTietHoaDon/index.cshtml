@@ -30,38 +30,36 @@
 </div>
 
 <h4>Chi tiết sản phẩm</h4>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Mã sản phẩm</th>
-            <th>Tên sản phẩm</th>
-            <th>Số lượng</th>
-            <th>Tổng giá</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var detail in Model)
-        {
-            <tr>
-                <td>@detail.ProductID</td>
-                <td>@detail.Product.ProductName</td>
-                <td>@detail.Quantity</td>
-                <td>@detail.TotalPrice</td>
-            </tr>
-        }
-    </tbody>
-</table>
+<div id="grid"></div>
+
+<script>
+    $(document).ready(function () {
+        $("#grid").kendoGrid({
+            dataSource: {
+                data: @Html.Raw(Json.Encode(Model)),
+                schema: {
+                    model: {
+                        fields: {
+                            ProductID: { type: "string" },
+                            Product: { type: "object" },
+                            Quantity: { type: "number" },
+                            TotalPrice: { type: "number" }
+                        }
+                    }
+                },
+                pageSize: 10
+            },
+            pageable: true,
+            columns: [
+                { field: "ProductID", title: "Mã sản phẩm" },
+                { field: "Product.ProductName", title: "Tên sản phẩm" },
+                { field: "Quantity", title: "Số lượng" },
+                { field: "TotalPrice", title: "Tổng giá", format: "{0:c}" }
+            ]
+        });
+    });
+</script>
 
 <div>
     @Html.ActionLink("Quay lại", "Index", "HoaDon")
 </div>
-
-
-
-
-
-
-
-
-
-

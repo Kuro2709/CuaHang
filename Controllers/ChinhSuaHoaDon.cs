@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.Data.SqlClient;
 using System.Web.Mvc;
+using Microsoft.Data.SqlClient;
 using CuaHang.Models;
 
 namespace CuaHang.Controllers
 {
     public class ChinhSuaHoaDonController : Controller
     {
-        private readonly string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+        private readonly string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
 
         // GET: EditInvoice
         public ActionResult Index(string id)
@@ -71,7 +70,6 @@ namespace CuaHang.Controllers
             return View(invoice);
         }
 
-
         // POST: EditInvoice
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -85,15 +83,6 @@ namespace CuaHang.Controllers
 
             // Trim spaces and convert InvoiceID to uppercase
             invoice.InvoiceID = invoice.InvoiceID?.Trim().ToUpper();
-
-            // Check for null values
-            if (ProductID == null || Quantity == null)
-            {
-                ModelState.AddModelError("", "ProductID or Quantity is missing.");
-                ViewBag.Customers = GetCustomers();
-                ViewBag.Products = GetProducts();
-                return View(invoice);
-            }
 
             // Populate InvoiceDetails from form data
             invoice.InvoiceDetails = new List<ThongTinChiTietHoaDon>();
@@ -289,74 +278,6 @@ namespace CuaHang.Controllers
         {
             decimal price = GetProductPrice(productID);
             return Json(price, JsonRequestBehavior.AllowGet);
-        }
-
-        public ActionResult GetInvoiceDetails(string id)
-        {
-            List<ThongTinChiTietHoaDon> invoiceDetails = new List<ThongTinChiTietHoaDon>();
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "SELECT * FROM InvoiceDetails WHERE InvoiceID = @InvoiceID";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    command.Parameters.AddWithValue("@InvoiceID", id);
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            invoiceDetails.Add(new ThongTinChiTietHoaDon
-                            {
-                                InvoiceID = reader["InvoiceID"].ToString(),
-                                ProductID = reader["ProductID"].ToString(),
-                                Quantity = Convert.ToInt32(reader["Quantity"]),
-                                TotalPrice = Convert.ToDecimal(reader["TotalPrice"]),
-                                Product = GetProductById(reader["ProductID"].ToString())
-                            });
-                        }
-                    }
-                }
-            }
-            return Json(invoiceDetails, JsonRequestBehavior.AllowGet);
-        }
-
-        [HttpPost]
-        public ActionResult UpdateInvoiceDetail(ThongTinChiTietHoaDon detail)
-        {
-            if (ModelState.IsValid)
-            {
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    string sql = "UPDATE InvoiceDetails SET ProductID = @ProductID, Quantity = @Quantity, TotalPrice = @TotalPrice WHERE InvoiceDetailID = @InvoiceDetailID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@InvoiceDetailID", detail.InvoiceDetailID);
-                        command.Parameters.AddWithValue("@ProductID", detail.ProductID);
-                        command.Parameters.AddWithValue("@Quantity", detail.Quantity);
-                        command.Parameters.AddWithValue("@TotalPrice", detail.TotalPrice);
-                        command.ExecuteNonQuery();
-                    }
-                }
-                return Json(new { success = true });
-            }
-            return Json(new { success = false, errors = ModelState.Values });
-        }
-
-        [HttpPost]
-        public ActionResult DeleteInvoiceDetail(int id)
-        {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "DELETE FROM InvoiceDetails WHERE InvoiceDetailID = @InvoiceDetailID";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    command.Parameters.AddWithValue("@InvoiceDetailID", id);
-                    command.ExecuteNonQuery();
-                }
-            }
-            return Json(new { success = true });
         }
     }
 }

@@ -30,7 +30,7 @@ namespace CuaHang.Controllers
             }
 
             // Trim spaces and convert InvoiceID to uppercase
-            invoice.InvoiceID = invoice.InvoiceID?.Trim().ToUpper();
+            invoice.InvoiceID = invoice.InvoiceID?.Trim().ToUpper().Replace(" ", "");
 
             // Populate InvoiceDetails from form data
             invoice.InvoiceDetails = new List<ThongTinChiTietHoaDon>();
@@ -249,4 +249,3 @@ namespace CuaHang.Controllers
         }
     }
 }
-

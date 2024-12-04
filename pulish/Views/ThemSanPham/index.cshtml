@@ -22,7 +22,7 @@
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">Mã sản phẩm :</label>
         <div class="col-sm-6">
-            <input type="text" class="form-control" name="ProductID" value="@Model.ProductID" />
+            <input type="text" class="form-control" name="ProductID" value="@Model.ProductID" id="ProductID" />
         </div>
     </div>
     <div class="row mb-3">
@@ -34,12 +34,12 @@
     <div class="row mb-3">
         <label class="col-sm-3 col-form-label">Giá thành:</label>
         <div class="col-sm-6">
-            <input type="text" class="form-control" name="Price" value="@Model.Price" />
+            <input type="text" class="form-control" name="Price" value="@Model.Price" id="Price" />
         </div>
     </div>
     <div class="row mb-3">
         <div class="offset-sm-3 col-sm-3 d-grid">
-            <button type="submit" class="btn btn-primary">Thêm</button>
+            <button type="submit" class="btn btn-primary">Nhập tiếp</button>
         </div>
         <div class="col-sm-3 d-grid">
             <a class="btn btn-outline-primary" href="/" role="button">Hủy</a>
@@ -47,6 +47,18 @@
     </div>
 </form>
 
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $('#ProductID').on('input', function () {
+                var value = $(this).val().toUpperCase().replace(/\s/g, '');
+                $(this).val(value);
+            });
 
-
-
+            $('#Price').on('input', function () {
+                var value = $(this).val().replace(/[^0-9.]/g, '');
+                $(this).val(value);
+            });
+        });
+    </script>
+}

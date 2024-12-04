@@ -1,4 +1,5 @@
 ﻿@model CuaHang.Models.ThongTinHoaDon
+@using Kendo.Mvc.UI
 
 @{
     ViewBag.Title = "Chỉnh sửa hóa đơn";
@@ -23,14 +24,17 @@
             @Html.Label("Mã hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
                 @Html.DisplayFor(model => model.InvoiceID, new { htmlAttributes = new { @class = "form-control" } })
-                @Html.HiddenFor(model => model.InvoiceID) <!-- Add this hidden input field -->
+                @Html.HiddenFor(model => model.InvoiceID)
             </div>
         </div>
 
         <div class="form-group">
             @Html.LabelFor(model => model.CustomerID, "Khách hàng", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownListFor(model => model.CustomerID, (SelectList)ViewBag.Customers, "Chọn khách hàng", new { @class = "form-control" })
+                @(Html.Kendo().DropDownListFor(model => model.CustomerID)
+                    .BindTo((SelectList)(ViewBag.Customers ?? new SelectList(Enumerable.Empty<SelectListItem>())))
+                    .OptionLabel("Chọn khách hàng")
+                    .HtmlAttributes(new { @class = "form-control" }))
                 @Html.ValidationMessageFor(model => model.CustomerID, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -38,7 +42,8 @@
         <div class="form-group">
             @Html.Label("Ngày tạo hóa đơn", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.EditorFor(model => model.InvoiceDate, new { htmlAttributes = new { @class = "form-control", @type = "date" } })
+                @(Html.Kendo().DatePickerFor(model => model.InvoiceDate)
+                    .HtmlAttributes(new { @class = "form-control" }))
                 @Html.ValidationMessageFor(model => model.InvoiceDate, "", new { @class = "text-danger" })
             </div>
         </div>
@@ -55,29 +60,25 @@
                 </tr>
             </thead>
             <tbody id="invoiceDetails">
-                @{
-                    var invoiceDetailsList = Model.InvoiceDetails.ToList();
-                    for (int i = 0; i < invoiceDetailsList.Count; i++)
-                    {
-                        ViewBag.Index = i;
-                        @Html.Partial("_InvoiceDetailRow", invoiceDetailsList[i])
-                    }
+                @foreach (var detail in Model.InvoiceDetails)
+                {
+                    @Html.Partial("_InvoiceDetailRow", detail)
                 }
             </tbody>
         </table>
-        <button type="button" class="btn btn-success" id="addDetailRow">Thêm sản phẩm</button>
+        <button type="button" class="k-button k-primary" id="addDetailRow">Thêm sản phẩm</button>
 
         <div class="form-group">
             <label class="control-label col-md-2">Tổng tiền</label>
             <div class="col-md-10">
-                <input type="text" id="TotalPrice" class="form-control" readonly value="0.00" />
+                <input type="text" id="TotalPrice" class="form-control" readonly value="@Model.TotalPrice.ToString("C")" />
             </div>
         </div>
 
         <div class="form-group">
             <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Lưu" class="btn btn-primary" />
-                <button type="button" class="btn btn-secondary" id="resetForm">Làm mới</button>
+                <input type="submit" value="Lưu" class="k-button k-primary" />
+                <button type="button" class="k-button" id="resetForm">Làm mới</button>
             </div>
         </div>
 
@@ -85,108 +86,45 @@
     </div>
 }
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script type="text/javascript">
-    $(document).ready(function () {
-        // Add new detail row
-        $('#addDetailRow').click(function () {
-            $.ajax({
-                url: '@Url.Action("AddInvoiceDetail")',
-                type: 'POST',
-                success: function (data) {
-                    $('#invoiceDetails').append(data);
-                    updateRowNames();
-                }
-            });
-        });
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            // Initialize Kendo UI buttons
+            $("#addDetailRow").kendoButton();
+            $("input[type='submit']").kendoButton();
+            $("#resetForm").kendoButton();
 
-        // Remove detail row
-        $(document).on('click', '.remove-row', function () {
-            $(this).closest('tr').remove();
-            updateTotalPrice(); // Recalculate total price after removing a row
-            updateRowNames(); // Update row names after removing a row
-        });
-
-        // Update product price and total price
-        $(document).on('change', '.product-dropdown', function () {
-            var productID = $(this).val();
-            var $row = $(this).closest('.invoice-detail-row');
-            if (productID) {
-                $.ajax({
-                    url: '@Url.Action("GetProductPriceByID", "EditInvoice")',
-                    type: 'GET',
-                    data: { productID: productID },
-                    success: function (price) {
-                        $row.find('.unitPrice').val(price);
-                        updateRowPrice($row);
-                    }
+            // Function to update total price
+            function updateTotalPrice() {
+                var total = 0;
+                $('#invoiceDetails .invoice-detail-row').each(function () {
+                    var rowTotal = parseFloat($(this).find('.totalPrice').text()) || 0;
+                    total += rowTotal;
                 });
+                $('#TotalPrice').val(total.toFixed(2));
             }
-        });
 
-        // Update row price and total price when quantity changes
-        $(document).on('input', '.quantity', function () {
-            var $row = $(this).closest('.invoice-detail-row');
-            updateRowPrice($row);
-        });
-
-        // Function to update row price
-        function updateRowPrice($row) {
-            var quantity = parseFloat($row.find('.quantity').val()) || 0;
-            var unitPrice = parseFloat($row.find('.unitPrice').val()) || 0;
-            var totalPrice = quantity * unitPrice;
-            $row.find('.totalPrice').text(totalPrice.toFixed(2));
-            updateTotalPrice();
-        }
-
-        // Function to calculate and update total price
-        function updateTotalPrice() {
-            var total = 0;
-            $('#invoiceDetails .invoice-detail-row').each(function () {
-                var rowTotal = parseFloat($(this).find('.totalPrice').text()) || 0;
-                total += rowTotal;
+            // Event handler for deleting a detail row
+            $(document).on('click', '.remove-row', function () {
+                $(this).closest('tr').remove();
+                updateTotalPrice();
             });
-            $('#TotalPrice').val(total.toFixed(2));
-        }
 
-        // Function to update row names
-        function updateRowNames() {
-            $('#invoiceDetails .invoice-detail-row').each(function (index) {
-                $(this).find('input, select').each(function () {
-                    var name = $(this).attr('name');
-                    if (name) {
-                        var newName = name.replace(/\[\d+\]/, '[' + index + ']');
-                        $(this).attr('name', newName);
-                    }
-                });
-            });
-        }
-
-        // Function to reset the form to its original state
-        function resetForm(originalInvoice) {
-            $('#invoiceDetails').empty();
-            $.each(originalInvoice.InvoiceDetails, function (index, detail) {
+            // Event handler for adding a new detail row
+            $('#addDetailRow').click(function () {
                 $.ajax({
                     url: '@Url.Action("AddInvoiceDetail")',
                     type: 'POST',
                     success: function (data) {
-                        var $row = $(data);
-                        $row.find('.product-dropdown').val(detail.ProductID);
-                        $row.find('.quantity').val(detail.Quantity);
-                        $row.find('.unitPrice').val(detail.TotalPrice / detail.Quantity);
-                        $row.find('.totalPrice').text(detail.TotalPrice.toFixed(2));
-                        $('#invoiceDetails').append($row);
-                        updateRowNames();
+                        $('#invoiceDetails').append(data);
                         updateTotalPrice();
                     }
                 });
             });
-            $('#CustomerID').val(originalInvoice.CustomerID);
-            $('#InvoiceDate').val(originalInvoice.InvoiceDate.split('T')[0]);
-            $('#TotalPrice').val(originalInvoice.TotalPrice.toFixed(2));
-        }
 
-        // Initial call to update row names
-        updateRowNames();
-    });
-</script>
+            // Initial call to update total price
+            updateTotalPrice();
+        });
+    </script>
+}
+
