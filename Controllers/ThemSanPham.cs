@@ -1,12 +1,22 @@
 ﻿using System;
-using Microsoft.Data.SqlClient;
 using System.Web.Mvc;
 using CuaHang.Models;
+using Newtonsoft.Json;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CuaHang.Controllers
 {
     public class ThemSanPhamController : Controller
     {
+        private readonly HttpClient _httpClient;
+
+        public ThemSanPhamController(HttpClient httpClient)
+        {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        }
+
         public string errorMessage = "";
         public string successMessage = "";
 
@@ -19,7 +29,7 @@ namespace CuaHang.Controllers
         // POST: ThemSanPham
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Index(ThongTinSanPham productInfo)
+        public async Task<ActionResult> Index(ThongTinSanPham productInfo)
         {
             if (ModelState.IsValid)
             {
@@ -42,39 +52,22 @@ namespace CuaHang.Controllers
 
                 try
                 {
-                    string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    var jsonContent = JsonConvert.SerializeObject(productInfo);
+                    var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PostAsync("SanPham", content);
+                    if (response.IsSuccessStatusCode)
                     {
-                        connection.Open();
-                        string sql = "INSERT INTO Product (ProductID, ProductName, Price) VALUES (@ProductID, @ProductName, @Price)";
-                        using (SqlCommand command = new SqlCommand(sql, connection))
-                        {
-                            command.Parameters.AddWithValue("@ProductID", productInfo.ProductID);
-                            command.Parameters.AddWithValue("@ProductName", productInfo.ProductName);
-                            command.Parameters.AddWithValue("@Price", productInfo.Price);
-                            command.ExecuteNonQuery();
-                        }
+                        successMessage = "Sản phẩm đã được thêm thành công";
+                        ViewBag.SuccessMessage = successMessage;
+                        ModelState.Clear();
+                        return View(new ThongTinSanPham());
                     }
-                    successMessage = "Sản phẩm đã được thêm thành công";
-                    ViewBag.SuccessMessage = successMessage;
-                    ModelState.Clear();
-                    return View(new ThongTinSanPham());
-                }
-                catch (SqlException ex) when (ex.Number == 2627) // SQL error code for primary key violation
-                {
-                    errorMessage = "Mã sản phẩm đã tồn tại, xin vui lòng nhập mã mới";
-                    ViewBag.ErrorMessage = errorMessage;
-                    return View(productInfo);
-                }
-                catch (AggregateException ex)
-                {
-                    foreach (var innerEx in ex.InnerExceptions)
+                    else
                     {
-                        System.Diagnostics.Debug.WriteLine($"Inner Exception: {innerEx.Message}");
+                        errorMessage = await response.Content.ReadAsStringAsync();
+                        ViewBag.ErrorMessage = errorMessage;
+                        return View(productInfo);
                     }
-                    errorMessage = "An error occurred while processing your request.";
-                    ViewBag.ErrorMessage = errorMessage;
-                    return View(productInfo);
                 }
                 catch (Exception ex)
                 {

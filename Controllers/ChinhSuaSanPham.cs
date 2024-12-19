@@ -1,46 +1,47 @@
 ﻿using System;
-using Microsoft.Data.SqlClient;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 using CuaHang.Models;
+using Newtonsoft.Json;
 
 namespace CuaHang.Controllers
 {
     public class ChinhSuaSanPhamController : Controller
     {
+        private readonly HttpClient _httpClient;
+
+        public ChinhSuaSanPhamController(HttpClient httpClient)
+        {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        }
+
         public string errorMessage = "";
         public string successMessage = "";
 
         // GET: EditProduct
-        public ActionResult Index(string id)
+        public async Task<ActionResult> Index(string id)
         {
             ThongTinSanPham productInfo = new ThongTinSanPham();
             try
             {
-                string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                var response = await _httpClient.GetAsync($"SanPham/{id}");
+                if (response.IsSuccessStatusCode)
                 {
-                    connection.Open();
-                    string sql = "SELECT * FROM Product WHERE ProductID = @ProductID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@ProductID", id);
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                productInfo.ProductID = reader["ProductID"].ToString();
-                                productInfo.ProductName = reader["ProductName"].ToString();
-                                productInfo.Price = Convert.ToDecimal(reader["Price"]);
-                            }
-                        }
-                    }
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    productInfo = JsonConvert.DeserializeObject<ThongTinSanPham>(jsonString);
+                }
+                else
+                {
+                    errorMessage = "Không tìm thấy sản phẩm.";
+                    ViewBag.ErrorMessage = errorMessage;
                 }
             }
             catch (Exception ex)
             {
                 errorMessage = "Exception: " + ex.Message;
                 ViewBag.ErrorMessage = errorMessage;
-                return View(productInfo);
             }
 
             return View(productInfo);
@@ -49,7 +50,7 @@ namespace CuaHang.Controllers
         // POST: EditProduct
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Index(ThongTinSanPham productInfo)
+        public async Task<ActionResult> Index(ThongTinSanPham productInfo)
         {
             if (ModelState.IsValid)
             {
@@ -62,22 +63,21 @@ namespace CuaHang.Controllers
 
                 try
                 {
-                    string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    var jsonContent = JsonConvert.SerializeObject(productInfo);
+                    var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PutAsync($"SanPham/{productInfo.ProductID}", content);
+                    if (response.IsSuccessStatusCode)
                     {
-                        connection.Open();
-                        string sql = "UPDATE Product SET ProductName = @ProductName, Price = @Price WHERE ProductID = @ProductID";
-                        using (SqlCommand command = new SqlCommand(sql, connection))
-                        {
-                            command.Parameters.AddWithValue("@ProductID", productInfo.ProductID);
-                            command.Parameters.AddWithValue("@ProductName", productInfo.ProductName);
-                            command.Parameters.AddWithValue("@Price", productInfo.Price);
-                            command.ExecuteNonQuery();
-                        }
+                        successMessage = "Product updated successfully";
+                        ViewBag.SuccessMessage = successMessage;
+                        return RedirectToAction("Index", "SanPham");
                     }
-                    successMessage = "Product updated successfully";
-                    ViewBag.SuccessMessage = successMessage;
-                    return RedirectToAction("Index", "SanPham");
+                    else
+                    {
+                        errorMessage = await response.Content.ReadAsStringAsync();
+                        ViewBag.ErrorMessage = errorMessage;
+                        return View(productInfo);
+                    }
                 }
                 catch (Exception ex)
                 {

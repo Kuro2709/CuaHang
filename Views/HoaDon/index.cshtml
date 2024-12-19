@@ -11,6 +11,11 @@
     <span class="k-icon k-i-plus"></span>
 </a>
 
+@if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+{
+    <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+}
+
 @(Html.Kendo().Grid<CuaHang.Models.ThongTinHoaDon>()
     .Name("grid")
     .Columns(columns =>
@@ -20,9 +25,9 @@
         columns.Bound(c => c.TotalPrice).Title("Tổng giá").Width(150);
         columns.Command(command =>
         {
-            command.Custom("Details").Click("viewInvoiceDetails").Text("Chi Tiết").HtmlAttributes(new { @id = "ChiTiet", @class = "button" });
-            command.Custom("Edit").Click("editInvoice").Text("Thay đổi").HtmlAttributes(new { @id = "ThayDoi", @class = "button" });
-            command.Custom("Delete").Click("deleteInvoice").Text("Xóa").HtmlAttributes(new { @id = "Xoa", @class = "button" });
+            command.Custom("Details").Click("viewInvoiceDetails").Text("Chi Tiết").HtmlAttributes(new { @class = "k-button k-button-info" });
+            command.Custom("Edit").Click("editInvoice").Text("Thay đổi").HtmlAttributes(new { @class = "k-button k-button-info" });
+            command.Destroy().HtmlAttributes(new { @class = "k-button k-button-error" }).Text("Xóa bỏ");
         }).Title("Hành động").Width(300);
     })
     .Pageable()
@@ -31,6 +36,8 @@
         .Ajax()
         .Model(model => model.Id(c => c.InvoiceID))
         .Read(read => read.Action("GetInvoices", "HoaDon"))
+        .Destroy(destroy => destroy.Action("DeleteInvoice", "HoaDon"))
+        .Events(events => events.Error("onDataSourceError")) // Attach the error event here
     )
 )
 
@@ -42,24 +49,31 @@
                 themeColor: "primary"
             });
 
-            $("#ChiTiet").each(function() {
-                $(this).kendoButton({
-                    themeColor: "info"
-                });
+            $(".k-button-info").kendoButton({
+                themeColor: "info"
             });
 
-            $("#ThayDoi").each(function() {
-                $(this).kendoButton({
-                    themeColor: "info"
-                });
-            });
-
-            $("#Xoa").each(function() {
-                $(this).kendoButton({
-                    themeColor: "error"
-                });
+            $(".k-button-error").kendoButton({
+                themeColor: "error"
             });
         });
+
+        function onDataSourceError(e) {
+            if (e.errors) {
+                var message = "";
+                for (var key in e.errors) {
+                    if (e.errors[key].errors) {
+                        message += e.errors[key].errors.join("\n");
+                    }
+                }
+                alert(message); // Display the error message
+            } else {
+                alert("An unexpected error occurred.");
+            }
+
+            var grid = $("#grid").data("kendoGrid");
+            grid.dataSource.read();
+        }
 
         function viewInvoiceDetails(e) {
             e.preventDefault();
@@ -73,15 +87,6 @@
             var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
             var url = '@Url.Action("Index", "ChinhSuaHoaDon", new { id = "__id__" })'.replace("__id__", dataItem.InvoiceID);
             window.location.href = url;
-        }
-
-        function deleteInvoice(e) {
-            e.preventDefault();
-            if (confirm('Bạn có muốn xóa không')) {
-                var dataItem = this.dataItem($(e.currentTarget).closest("tr"));
-                var url = '@Url.Action("Index", "XoaHoaDon", new { id = "__id__" })'.replace("__id__", dataItem.InvoiceID);
-                window.location.href = url;
-            }
         }
     </script>
 }

@@ -12,22 +12,29 @@
     <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
 }
 
-<div>
-    <hr />
-    <dl class="dl-horizontal">
-        <dt>Mã số hóa đơn</dt>
-        <dd>@invoice.InvoiceID</dd>
+@if (invoice != null)
+{
+    <div>
+        <hr />
+        <dl class="dl-horizontal">
+            <dt>Mã số hóa đơn</dt>
+            <dd>@invoice.InvoiceID</dd>
 
-        <dt>Mã khách hàng</dt>
-        <dd>@invoice.CustomerID</dd>
+            <dt>Mã khách hàng</dt>
+            <dd>@invoice.CustomerID</dd>
 
-        <dt>Ngày hóa đơn</dt>
-        <dd>@invoice.InvoiceDate.ToString("yyyy-MM-dd")</dd>
+            <dt>Ngày hóa đơn</dt>
+            <dd>@invoice.InvoiceDate.ToString("yyyy-MM-dd")</dd>
 
-        <dt>Tổng giá</dt>
-        <dd>@invoice.TotalPrice</dd>
-    </dl>
-</div>
+            <dt>Tổng giá</dt>
+            <dd>@invoice.TotalPrice</dd>
+        </dl>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">Hóa đơn không tồn tại.</div>
+}
 
 <h4>Chi tiết sản phẩm</h4>
 <div id="grid"></div>

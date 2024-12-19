@@ -1,4 +1,4 @@
-﻿@model List<CuaHang.Models.ThongTinSanPham>
+﻿﻿@model List<CuaHang.Models.ThongTinSanPham>
 @using Kendo.Mvc.UI
 
 @{
@@ -16,7 +16,7 @@
     <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
 }
 
-    
+
 @(Html.Kendo().Grid<CuaHang.Models.ThongTinSanPham>()
     .Name("grid")
     .Columns(columns =>

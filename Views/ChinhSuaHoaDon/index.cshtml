@@ -1,4 +1,4 @@
-﻿@model CuaHang.Models.ThongTinHoaDon
+﻿﻿@model CuaHang.Models.ThongTinHoaDon
 
 @{
     ViewBag.Title = "Chỉnh sửa hóa đơn";
@@ -127,7 +127,7 @@
                     return;
                 }
                 $.ajax({
-                    url: '@Url.Action("GetProductPriceByID", "ThemHoaDon")',
+                    url: '@Url.Action("GetProductPriceByID", "ChinhSuaHoaDon")',
                     type: 'GET',
                     data: { productID: productID },
                     success: function (price) {

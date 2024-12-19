@@ -1,12 +1,22 @@
 ﻿using System;
-using Microsoft.Data.SqlClient;
 using System.Web.Mvc;
 using CuaHang.Models;
+using Newtonsoft.Json;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace CuaHang.Controllers
 {
     public class ThemKhachHangController : Controller
     {
+        private readonly HttpClient _httpClient;
+
+        public ThemKhachHangController(HttpClient httpClient)
+        {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        }
+
         public string errorMessage = "";
         public string successMessage = "";
 
@@ -19,7 +29,7 @@ namespace CuaHang.Controllers
         // POST: ThemKhachHang
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Index(ThongTinKhachHang customerInfo)
+        public async Task<ActionResult> Index(ThongTinKhachHang customerInfo)
         {
             if (ModelState.IsValid)
             {
@@ -49,39 +59,22 @@ namespace CuaHang.Controllers
 
                 try
                 {
-                    string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    var jsonContent = JsonConvert.SerializeObject(customerInfo);
+                    var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PostAsync("KhachHang", content);
+                    if (response.IsSuccessStatusCode)
                     {
-                        connection.Open();
-                        string sql = "INSERT INTO Customer (CustomerID, CustomerName, Phone) VALUES (@CustomerID, @CustomerName, @Phone)";
-                        using (SqlCommand command = new SqlCommand(sql, connection))
-                        {
-                            command.Parameters.AddWithValue("@CustomerID", customerInfo.CustomerID);
-                            command.Parameters.AddWithValue("@CustomerName", customerInfo.CustomerName);
-                            command.Parameters.AddWithValue("@Phone", customerInfo.Phone);
-                            command.ExecuteNonQuery();
-                        }
+                        successMessage = "Khách hàng đã được thêm thành công";
+                        ViewBag.SuccessMessage = successMessage;
+                        ModelState.Clear();
+                        return View(new ThongTinKhachHang());
                     }
-                    successMessage = "Khách hàng đã được thêm thành công";
-                    ViewBag.SuccessMessage = successMessage;
-                    ModelState.Clear();
-                    return View(new ThongTinKhachHang());
-                }
-                catch (SqlException ex) when (ex.Number == 2627) // SQL error code for primary key violation
-                {
-                    errorMessage = "Mã khách hàng đã tồn tại, xin vui lòng nhập mã mới";
-                    ViewBag.ErrorMessage = errorMessage;
-                    return View(customerInfo);
-                }
-                catch (AggregateException ex)
-                {
-                    foreach (var innerEx in ex.InnerExceptions)
+                    else
                     {
-                        System.Diagnostics.Debug.WriteLine($"Inner Exception: {innerEx.Message}");
+                        errorMessage = await response.Content.ReadAsStringAsync();
+                        ViewBag.ErrorMessage = errorMessage;
+                        return View(customerInfo);
                     }
-                    errorMessage = "An error occurred while processing your request.";
-                    ViewBag.ErrorMessage = errorMessage;
-                    return View(customerInfo);
                 }
                 catch (Exception ex)
                 {

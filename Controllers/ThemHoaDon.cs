@@ -1,28 +1,41 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
 using System.Web.Mvc;
-using Microsoft.Data.SqlClient;
 using CuaHang.Models;
+using Newtonsoft.Json;
 
 namespace CuaHang.Controllers
 {
     public class ThemHoaDonController : Controller
     {
-        private readonly string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+        private readonly HttpClient _httpClient;
+
+        public ThemHoaDonController(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+            _httpClient.BaseAddress = new Uri("https://localhost:7262/api/");
+            _httpClient.DefaultRequestHeaders.Accept.Clear();
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        }
 
         // GET: ThemHoaDon
-        public ActionResult Index()
+        public async Task<ActionResult> Index()
         {
-            ViewBag.Customers = GetCustomers();
-            ViewBag.Products = GetProducts();
+            ViewBag.Customers = await GetCustomers();
+            ViewBag.Products = await GetProducts();
             return View(new ThongTinHoaDon { InvoiceDetails = new List<ThongTinChiTietHoaDon> { new ThongTinChiTietHoaDon() } });
         }
 
         // POST: ThemHoaDon
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Index(ThongTinHoaDon invoice, string[] ProductID, int[] Quantity)
+        public async Task<ActionResult> Index(ThongTinHoaDon invoice, string[] ProductID, int[] Quantity)
         {
+            System.Diagnostics.Debug.WriteLine("Form submission started.");
+
             // Log form data
             foreach (var key in Request.Form.AllKeys)
             {
@@ -31,42 +44,54 @@ namespace CuaHang.Controllers
 
             // Trim spaces and convert InvoiceID to uppercase
             invoice.InvoiceID = invoice.InvoiceID?.Trim().ToUpper().Replace(" ", "");
+            System.Diagnostics.Debug.WriteLine($"Trimmed and uppercased InvoiceID: {invoice.InvoiceID}");
 
             // Populate InvoiceDetails from form data
             invoice.InvoiceDetails = new List<ThongTinChiTietHoaDon>();
             for (int i = 0; i < ProductID.Length; i++)
             {
+                System.Diagnostics.Debug.WriteLine($"Processing ProductID: {ProductID[i]} with Quantity: {Quantity[i]}");
+
                 var detail = new ThongTinChiTietHoaDon
                 {
                     InvoiceID = invoice.InvoiceID,
                     ProductID = ProductID[i],
                     Quantity = Quantity[i],
-                    TotalPrice = Quantity[i] * GetProductPrice(ProductID[i]),
-                    Product = GetProductById(ProductID[i])
+                    TotalPrice = Quantity[i] * await GetProductPrice(ProductID[i]),
+                    Product = await GetProductById(ProductID[i])
                 };
                 invoice.InvoiceDetails.Add(detail);
             }
+
+            System.Diagnostics.Debug.WriteLine("Invoice details populated.");
 
             if (ModelState.IsValid)
             {
                 try
                 {
                     // Check for duplicate InvoiceID
-                    if (InvoiceExists(invoice.InvoiceID))
+                    System.Diagnostics.Debug.WriteLine("Checking for duplicate InvoiceID.");
+                    if (await InvoiceExists(invoice.InvoiceID))
                     {
                         ModelState.AddModelError("InvoiceID", "Mã hóa đơn đã tồn tại.");
+                        System.Diagnostics.Debug.WriteLine("Duplicate InvoiceID found.");
                     }
                     else if (invoice.InvoiceDetails == null || invoice.InvoiceDetails.Count == 0)
                     {
                         ModelState.AddModelError("", "Bạn phải thêm ít nhất một dòng mặt hàng.");
+                        System.Diagnostics.Debug.WriteLine("No invoice details found.");
                     }
                     else
                     {
                         // Calculate total price
-                        invoice.RecalculateTotalPrice(GetProductPrice);
+                        System.Diagnostics.Debug.WriteLine("Recalculating total price.");
+                        await invoice.RecalculateTotalPrice(productID => GetProductPrice(productID));
+                        System.Diagnostics.Debug.WriteLine("Total price recalculated.");
 
                         // Insert invoice and invoice details
-                        InsertInvoice(invoice);
+                        System.Diagnostics.Debug.WriteLine("Inserting invoice.");
+                        await InsertInvoice(invoice);
+                        System.Diagnostics.Debug.WriteLine("Invoice inserted successfully.");
                         TempData["SuccessMessage"] = "Hóa đơn đã được thêm thành công.";
                         return RedirectToAction("Index");
                     }
@@ -78,173 +103,70 @@ namespace CuaHang.Controllers
                 }
             }
 
-            ViewBag.Customers = GetCustomers();
-            ViewBag.Products = GetProducts();
+            ViewBag.Customers = await GetCustomers();
+            ViewBag.Products = await GetProducts();
+            System.Diagnostics.Debug.WriteLine("Returning view with invoice data.");
             return View(invoice);
         }
 
         [HttpPost]
-        public ActionResult AddInvoiceDetail()
+        public async Task<ActionResult> AddInvoiceDetail()
         {
-            ViewBag.Products = GetProducts();
+            ViewBag.Products = await GetProducts();
             return PartialView("_InvoiceDetailRow", new ThongTinChiTietHoaDon());
         }
 
-        private bool InvoiceExists(string invoiceID)
+        private async Task<bool> InvoiceExists(string invoiceID)
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "SELECT COUNT(*) FROM Invoice WHERE InvoiceID = @InvoiceID";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    command.Parameters.AddWithValue("@InvoiceID", invoiceID);
-                    int count = (int)command.ExecuteScalar();
-                    return count > 0;
-                }
-            }
+            var response = await _httpClient.GetAsync($"HoaDon/{invoiceID}");
+            return response.IsSuccessStatusCode;
         }
 
-        private void InsertInvoice(ThongTinHoaDon invoice)
+        private async Task InsertInvoice(ThongTinHoaDon invoice)
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                using (SqlTransaction transaction = connection.BeginTransaction())
-                {
-                    try
-                    {
-                        // Insert invoice
-                        string insertInvoiceSql = "INSERT INTO Invoice (InvoiceID, CustomerID, InvoiceDate, TotalPrice) VALUES (@InvoiceID, @CustomerID, @InvoiceDate, @TotalPrice)";
-                        using (SqlCommand command = new SqlCommand(insertInvoiceSql, connection, transaction))
-                        {
-                            command.Parameters.AddWithValue("@InvoiceID", invoice.InvoiceID);
-                            command.Parameters.AddWithValue("@CustomerID", invoice.CustomerID);
-                            command.Parameters.AddWithValue("@InvoiceDate", invoice.InvoiceDate);
-                            command.Parameters.AddWithValue("@TotalPrice", invoice.TotalPrice);
-                            command.ExecuteNonQuery();
-                        }
-
-                        // Insert invoice details
-                        foreach (var detail in invoice.InvoiceDetails)
-                        {
-                            string insertDetailSql = "INSERT INTO InvoiceDetails (InvoiceID, ProductID, Quantity, TotalPrice) VALUES (@InvoiceID, @ProductID, @Quantity, @TotalPrice)";
-                            using (SqlCommand command = new SqlCommand(insertDetailSql, connection, transaction))
-                            {
-                                command.Parameters.AddWithValue("@InvoiceID", invoice.InvoiceID);
-                                command.Parameters.AddWithValue("@ProductID", detail.ProductID);
-                                command.Parameters.AddWithValue("@Quantity", detail.Quantity);
-                                command.Parameters.AddWithValue("@TotalPrice", detail.TotalPrice);
-                                command.ExecuteNonQuery();
-                            }
-                        }
-
-                        transaction.Commit();
-                    }
-                    catch (Exception)
-                    {
-                        transaction.Rollback();
-                        throw;
-                    }
-                }
-            }
+            System.Diagnostics.Debug.WriteLine("Starting InsertInvoice method.");
+            var content = new StringContent(JsonConvert.SerializeObject(invoice), System.Text.Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("HoaDon", content);
+            response.EnsureSuccessStatusCode();
+            System.Diagnostics.Debug.WriteLine("InsertInvoice method completed successfully.");
         }
 
         [HttpGet]
-        public JsonResult GetProductPriceByID(string productID)
+        public async Task<JsonResult> GetProductPriceByID(string productID)
         {
-            decimal price = GetProductPrice(productID);
+            decimal price = await GetProductPrice(productID);
             return Json(price, JsonRequestBehavior.AllowGet);
         }
 
-        private decimal GetProductPrice(string productID)
+        private async Task<decimal> GetProductPrice(string productID)
         {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "SELECT Price FROM Product WHERE ProductID = @ProductID";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    command.Parameters.AddWithValue("@ProductID", productID);
-                    return (decimal)command.ExecuteScalar();
-                }
-            }
+            var response = await _httpClient.GetAsync($"HoaDon/ProductPrice/{productID}");
+            response.EnsureSuccessStatusCode();
+            var price = JsonConvert.DeserializeObject<decimal>(await response.Content.ReadAsStringAsync());
+            return price;
         }
 
-        private ThongTinSanPham GetProductById(string productId)
+        private async Task<ThongTinSanPham> GetProductById(string productId)
         {
-            ThongTinSanPham product = null;
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "SELECT ProductID, ProductName, Price FROM Product WHERE ProductID = @ProductID";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    command.Parameters.AddWithValue("@ProductID", productId);
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            product = new ThongTinSanPham
-                            {
-                                ProductID = reader["ProductID"].ToString(),
-                                ProductName = reader["ProductName"].ToString(),
-                                Price = Convert.ToDecimal(reader["Price"])
-                            };
-                        }
-                    }
-                }
-            }
+            var response = await _httpClient.GetAsync($"HoaDon/Products/{productId}");
+            response.EnsureSuccessStatusCode();
+            var product = JsonConvert.DeserializeObject<ThongTinSanPham>(await response.Content.ReadAsStringAsync());
             return product;
         }
 
-        private SelectList GetCustomers()
+        private async Task<SelectList> GetCustomers()
         {
-            List<ThongTinKhachHang> customers = new List<ThongTinKhachHang>();
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "SELECT CustomerID, CustomerName FROM Customer";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            customers.Add(new ThongTinKhachHang
-                            {
-                                CustomerID = reader["CustomerID"].ToString(),
-                                CustomerName = reader["CustomerName"].ToString()
-                            });
-                        }
-                    }
-                }
-            }
+            var response = await _httpClient.GetAsync("HoaDon/Customers");
+            response.EnsureSuccessStatusCode();
+            var customers = JsonConvert.DeserializeObject<List<ThongTinKhachHang>>(await response.Content.ReadAsStringAsync());
             return new SelectList(customers, "CustomerID", "CustomerName");
         }
 
-        private SelectList GetProducts()
+        private async Task<SelectList> GetProducts()
         {
-            List<ThongTinSanPham> products = new List<ThongTinSanPham>();
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "SELECT ProductID, ProductName FROM Product";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            products.Add(new ThongTinSanPham
-                            {
-                                ProductID = reader["ProductID"].ToString(),
-                                ProductName = reader["ProductName"].ToString()
-                            });
-                        }
-                    }
-                }
-            }
+            var response = await _httpClient.GetAsync("HoaDon/Products");
+            response.EnsureSuccessStatusCode();
+            var products = JsonConvert.DeserializeObject<List<ThongTinSanPham>>(await response.Content.ReadAsStringAsync());
             return new SelectList(products, "ProductID", "ProductName");
         }
     }

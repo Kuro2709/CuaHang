@@ -11,7 +11,7 @@
     <div class="alert alert-success">@TempData["SuccessMessage"]</div>
 }
 
-@using (Html.BeginForm("Index", "ThemHoaDon", FormMethod.Post))
+@using (Html.BeginForm("Index", "ThemHoaDon", FormMethod.Post, new { @id = "invoiceForm" }))
 {
     @Html.AntiForgeryToken()
 
@@ -250,4 +250,3 @@
         }
     });
 </script>
-

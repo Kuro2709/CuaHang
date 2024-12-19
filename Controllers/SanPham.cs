@@ -1,16 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Web.Mvc;
-using Microsoft.Data.SqlClient;
 using CuaHang.Models;
 using Kendo.Mvc.Extensions;
 using Kendo.Mvc.UI;
+using CuaHang.Services;
 
 namespace CuaHang.Controllers
 {
     public class SanPhamController : Controller
     {
-        private readonly string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+        private readonly ISanPhamService _sanPhamService;
+
+        public SanPhamController(ISanPhamService sanPhamService)
+        {
+            _sanPhamService = sanPhamService ?? throw new ArgumentNullException(nameof(sanPhamService));
+        }
 
         // GET: Product
         public ActionResult Index()
@@ -18,33 +24,14 @@ namespace CuaHang.Controllers
             return View();
         }
 
-        public ActionResult GetProducts([DataSourceRequest] DataSourceRequest request)
+        public async Task<ActionResult> GetProducts([DataSourceRequest] DataSourceRequest request)
         {
             List<ThongTinSanPham> listProducts = new List<ThongTinSanPham>();
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    string sql = "SELECT * FROM Product";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                ThongTinSanPham product = new ThongTinSanPham
-                                {
-                                    ProductID = reader["ProductID"].ToString(),
-                                    ProductName = reader["ProductName"].ToString(),
-                                    Price = Convert.ToDecimal(reader["Price"])
-                                };
-                                listProducts.Add(product);
-                            }
-                        }
-                    }
-                }
+                var products = await _sanPhamService.GetProductsAsync();
+                listProducts = new List<ThongTinSanPham>(products);
             }
             catch (Exception ex)
             {
@@ -55,11 +42,11 @@ namespace CuaHang.Controllers
         }
 
         [HttpPost]
-        public ActionResult DeleteProduct([DataSourceRequest] DataSourceRequest request, ThongTinSanPham product)
+        public async Task<ActionResult> DeleteProduct([DataSourceRequest] DataSourceRequest request, ThongTinSanPham product)
         {
             if (product != null)
             {
-                if (ProductHasInvoices(product.ProductID))
+                if (await _sanPhamService.ProductHasInvoicesAsync(product.ProductID))
                 {
                     ModelState.AddModelError("", "Không thể xóa sản phẩm. Sản phẩm đang có trong một hoặc nhiều hóa đơn.");
                 }
@@ -67,15 +54,10 @@ namespace CuaHang.Controllers
                 {
                     try
                     {
-                        using (SqlConnection connection = new SqlConnection(connectionString))
+                        var success = await _sanPhamService.DeleteProductAsync(product.ProductID);
+                        if (!success)
                         {
-                            connection.Open();
-                            string sql = "DELETE FROM Product WHERE ProductID = @ProductID";
-                            using (SqlCommand command = new SqlCommand(sql, connection))
-                            {
-                                command.Parameters.AddWithValue("@ProductID", product.ProductID);
-                                command.ExecuteNonQuery();
-                            }
+                            ModelState.AddModelError("ProductDeleteError", "Không thể xóa sản phẩm. Sản phẩm đang có trong một hoặc nhiều hóa đơn.");
                         }
                     }
                     catch (Exception ex)
@@ -87,21 +69,5 @@ namespace CuaHang.Controllers
 
             return Json(new[] { product }.ToDataSourceResult(request, ModelState));
         }
-
-        private bool ProductHasInvoices(string productId)
-        {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                connection.Open();
-                string sql = "SELECT COUNT(*) FROM InvoiceDetails WHERE ProductID = @ProductID";
-                using (SqlCommand command = new SqlCommand(sql, connection))
-                {
-                    command.Parameters.AddWithValue("@ProductID", productId);
-                    int count = (int)command.ExecuteScalar();
-                    return count > 0;
-                }
-            }
-        }
     }
 }
-

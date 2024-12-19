@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 
 namespace CuaHang.Models
 {
@@ -25,14 +26,26 @@ namespace CuaHang.Models
         public virtual ThongTinKhachHang Customer { get; set; }
         public virtual ICollection<ThongTinChiTietHoaDon> InvoiceDetails { get; set; } = new List<ThongTinChiTietHoaDon>();
 
-        public void RecalculateTotalPrice(Func<string, decimal> getProductPrice)
+        public async Task RecalculateTotalPrice(Func<string, Task<decimal>> getProductPriceAsync)
         {
+            System.Diagnostics.Debug.WriteLine("Starting RecalculateTotalPrice method.");
             TotalPrice = 0;
             foreach (var detail in InvoiceDetails)
             {
-                detail.TotalPrice = detail.Quantity * getProductPrice(detail.ProductID);
-                TotalPrice += detail.TotalPrice;
+                try
+                {
+                    detail.TotalPrice = detail.Quantity * await getProductPriceAsync(detail.ProductID);
+                    TotalPrice += detail.TotalPrice;
+                    System.Diagnostics.Debug.WriteLine($"Detail: ProductID={detail.ProductID}, Quantity={detail.Quantity}, TotalPrice={detail.TotalPrice}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error calculating price for ProductID={detail.ProductID}: {ex.Message}");
+                    throw;
+                }
             }
+            System.Diagnostics.Debug.WriteLine($"Recalculated TotalPrice: {TotalPrice}");
         }
+
     }
 }

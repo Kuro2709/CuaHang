@@ -1,63 +1,75 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Data.SqlClient;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 using CuaHang.Models;
+using Newtonsoft.Json;
 
 namespace CuaHang.Controllers
 {
     public class ChiTietHoaDonController : Controller
     {
+        private readonly HttpClient _httpClient;
+
+        public ChiTietHoaDonController(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
+
         public string errorMessage = "";
         public string successMessage = "";
 
         // GET: InvoiceDetails
-        public ActionResult Index(string id)
+        public async Task<ActionResult> Index(string id)
         {
-            ThongTinHoaDon invoice = new ThongTinHoaDon();
+            ThongTinHoaDon invoice = null;
             List<ThongTinChiTietHoaDon> invoiceDetails = new List<ThongTinChiTietHoaDon>();
             try
             {
-                string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                HttpResponseMessage response = await _httpClient.GetAsync($"HoaDon/{id}");
+                if (response.IsSuccessStatusCode)
                 {
-                    connection.Open();
-                    string sql = "SELECT * FROM Invoice WHERE InvoiceID = @InvoiceID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@InvoiceID", id);
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                invoice.InvoiceID = reader["InvoiceID"].ToString();
-                                invoice.CustomerID = reader["CustomerID"].ToString();
-                                invoice.InvoiceDate = Convert.ToDateTime(reader["InvoiceDate"]);
-                                invoice.TotalPrice = Convert.ToDecimal(reader["TotalPrice"]);
-                            }
-                        }
-                    }
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    var invoiceDto = JsonConvert.DeserializeObject<HoaDonDto>(jsonString);
 
-                    sql = "SELECT d.InvoiceDetailID, d.ProductID, p.ProductName, d.Quantity, d.TotalPrice FROM InvoiceDetails d JOIN Product p ON d.ProductID = p.ProductID WHERE d.InvoiceID = @InvoiceID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    invoice = new ThongTinHoaDon
                     {
-                        command.Parameters.AddWithValue("@InvoiceID", id);
-                        using (SqlDataReader reader = command.ExecuteReader())
+                        InvoiceID = invoiceDto.InvoiceID,
+                        CustomerID = invoiceDto.CustomerID,
+                        InvoiceDate = invoiceDto.InvoiceDate,
+                        TotalPrice = invoiceDto.TotalPrice,
+                        Customer = new ThongTinKhachHang
                         {
-                            while (reader.Read())
+                            CustomerID = invoiceDto.Customer.CustomerID,
+                            CustomerName = invoiceDto.Customer.CustomerName,
+                            Phone = invoiceDto.Customer.Phone
+                        },
+                        InvoiceDetails = new List<ThongTinChiTietHoaDon>()
+                    };
+
+                    foreach (var detailDto in invoiceDto.ChiTietHoaDon)
+                    {
+                        var detail = new ThongTinChiTietHoaDon
+                        {
+                            InvoiceDetailID = detailDto.InvoiceDetailID,
+                            ProductID = detailDto.ProductID,
+                            Product = new ThongTinSanPham
                             {
-                                ThongTinChiTietHoaDon detail = new ThongTinChiTietHoaDon
-                                {
-                                    InvoiceDetailID = Convert.ToInt32(reader["InvoiceDetailID"]),
-                                    ProductID = reader["ProductID"].ToString(),
-                                    Product = new ThongTinSanPham { ProductName = reader["ProductName"].ToString() },
-                                    Quantity = Convert.ToInt32(reader["Quantity"]),
-                                    TotalPrice = Convert.ToDecimal(reader["TotalPrice"])
-                                };
-                                invoiceDetails.Add(detail);
-                            }
-                        }
+                                ProductID = detailDto.Product.ProductID,
+                                ProductName = detailDto.Product.ProductName,
+                                Price = detailDto.Product.Price
+                            },
+                            Quantity = detailDto.Quantity,
+                            TotalPrice = detailDto.TotalPrice
+                        };
+                        invoice.InvoiceDetails.Add(detail);
                     }
+                }
+                else
+                {
+                    errorMessage = "Error: Unable to retrieve invoice details.";
+                    ViewBag.ErrorMessage = errorMessage;
                 }
             }
             catch (Exception ex)
@@ -67,7 +79,7 @@ namespace CuaHang.Controllers
             }
 
             ViewBag.Invoice = invoice;
-            return View(invoiceDetails);
+            return View(invoice?.InvoiceDetails ?? invoiceDetails);
         }
     }
 }

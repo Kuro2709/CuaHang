@@ -1,46 +1,47 @@
 ﻿using System;
-using Microsoft.Data.SqlClient;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 using CuaHang.Models;
+using Newtonsoft.Json;
 
 namespace CuaHang.Controllers
 {
     public class ChinhSuaKhachHangController : Controller
     {
+        private readonly HttpClient _httpClient;
+
+        public ChinhSuaKhachHangController(HttpClient httpClient)
+        {
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        }
+
         public string errorMessage = "";
         public string successMessage = "";
 
         // GET: EditCustomer
-        public ActionResult Index(string id)
+        public async Task<ActionResult> Index(string id)
         {
             ThongTinKhachHang customerInfo = new ThongTinKhachHang();
             try
             {
-                string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                var response = await _httpClient.GetAsync($"KhachHang/{id}");
+                if (response.IsSuccessStatusCode)
                 {
-                    connection.Open();
-                    string sql = "SELECT * FROM Customer WHERE CustomerID = @CustomerID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@CustomerID", id);
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                customerInfo.CustomerID = reader["CustomerID"].ToString();
-                                customerInfo.CustomerName = reader["CustomerName"].ToString();
-                                customerInfo.Phone = reader["Phone"].ToString();
-                            }
-                        }
-                    }
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    customerInfo = JsonConvert.DeserializeObject<ThongTinKhachHang>(jsonString);
+                }
+                else
+                {
+                    errorMessage = "Không tìm thấy khách hàng.";
+                    ViewBag.ErrorMessage = errorMessage;
                 }
             }
             catch (Exception ex)
             {
                 errorMessage = "Exception: " + ex.Message;
                 ViewBag.ErrorMessage = errorMessage;
-                return View(customerInfo);
             }
 
             return View(customerInfo);
@@ -49,7 +50,7 @@ namespace CuaHang.Controllers
         // POST: EditCustomer
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Index(ThongTinKhachHang customerInfo)
+        public async Task<ActionResult> Index(ThongTinKhachHang customerInfo)
         {
             if (ModelState.IsValid)
             {
@@ -62,22 +63,21 @@ namespace CuaHang.Controllers
 
                 try
                 {
-                    string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    var jsonContent = JsonConvert.SerializeObject(customerInfo);
+                    var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PutAsync($"KhachHang/{customerInfo.CustomerID}", content);
+                    if (response.IsSuccessStatusCode)
                     {
-                        connection.Open();
-                        string sql = "UPDATE Customer SET CustomerName = @CustomerName, Phone = @Phone WHERE CustomerID = @CustomerID";
-                        using (SqlCommand command = new SqlCommand(sql, connection))
-                        {
-                            command.Parameters.AddWithValue("@CustomerID", customerInfo.CustomerID);
-                            command.Parameters.AddWithValue("@CustomerName", customerInfo.CustomerName);
-                            command.Parameters.AddWithValue("@Phone", customerInfo.Phone);
-                            command.ExecuteNonQuery();
-                        }
+                        successMessage = "Chỉnh sửa khách hàng thành công";
+                        ViewBag.SuccessMessage = successMessage;
+                        return RedirectToAction("Index", "KhachHang");
                     }
-                    successMessage = "Chinh Sua Khach Hang Thanh Cong";
-                    ViewBag.SuccessMessage = successMessage;
-                    return RedirectToAction("Index", "KhachHang");
+                    else
+                    {
+                        errorMessage = await response.Content.ReadAsStringAsync();
+                        ViewBag.ErrorMessage = errorMessage;
+                        return View(customerInfo);
+                    }
                 }
                 catch (Exception ex)
                 {

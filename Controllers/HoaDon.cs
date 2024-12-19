@@ -1,16 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Web.Mvc;
-using Microsoft.Data.SqlClient;
 using CuaHang.Models;
 using Kendo.Mvc.Extensions;
 using Kendo.Mvc.UI;
+using CuaHang.Services;
 
 namespace CuaHang.Controllers
 {
     public class HoaDonController : Controller
     {
-        private readonly string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+        private readonly IHoaDonService _hoaDonService;
+
+        public HoaDonController(IHoaDonService hoaDonService)
+        {
+            _hoaDonService = hoaDonService ?? throw new ArgumentNullException(nameof(hoaDonService));
+        }
 
         // GET: Invoice
         public ActionResult Index()
@@ -18,32 +24,14 @@ namespace CuaHang.Controllers
             return View();
         }
 
-        public JsonResult GetInvoices([DataSourceRequest] DataSourceRequest request)
+        public async Task<ActionResult> GetInvoices([DataSourceRequest] DataSourceRequest request)
         {
             List<ThongTinHoaDon> invoices = new List<ThongTinHoaDon>();
+
             try
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    connection.Open();
-                    string sql = "SELECT i.InvoiceID, c.CustomerName, i.TotalPrice FROM Invoice i JOIN Customer c ON i.CustomerID = c.CustomerID";
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                ThongTinHoaDon invoice = new ThongTinHoaDon
-                                {
-                                    InvoiceID = reader["InvoiceID"].ToString(),
-                                    Customer = new ThongTinKhachHang { CustomerName = reader["CustomerName"].ToString() },
-                                    TotalPrice = Convert.ToDecimal(reader["TotalPrice"])
-                                };
-                                invoices.Add(invoice);
-                            }
-                        }
-                    }
-                }
+                var invoiceList = await _hoaDonService.GetInvoicesAsync();
+                invoices = new List<ThongTinHoaDon>(invoiceList);
             }
             catch (Exception ex)
             {
@@ -51,6 +39,28 @@ namespace CuaHang.Controllers
             }
 
             return Json(invoices.ToDataSourceResult(request), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> DeleteInvoice([DataSourceRequest] DataSourceRequest request, ThongTinHoaDon invoice)
+        {
+            if (invoice != null && ModelState.IsValid)
+            {
+                try
+                {
+                    var result = await _hoaDonService.DeleteInvoiceAsync(invoice.InvoiceID);
+                    if (!result)
+                    {
+                        ModelState.AddModelError("", "Error deleting invoice");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("", ex.Message);
+                }
+            }
+
+            return Json(new[] { invoice }.ToDataSourceResult(request, ModelState));
         }
     }
 }

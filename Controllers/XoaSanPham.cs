@@ -1,48 +1,40 @@
 ﻿using System;
-using Microsoft.Data.SqlClient;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 
 namespace CuaHang.Controllers
 {
     public class XoaSanPhamController : Controller
     {
+        private readonly HttpClient _httpClient;
+
+        public XoaSanPhamController(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
+
         public string errorMessage = "";
         public string successMessage = "";
 
         // GET: DeleteProduct
-        public ActionResult Index(string id)
+        public async Task<ActionResult> Index(string id)
         {
             try
             {
-                string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString; // Replace with your actual connection string
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                // Send DELETE request to the API
+                HttpResponseMessage response = await _httpClient.DeleteAsync($"SanPham/{id}");
+
+                if (response.IsSuccessStatusCode)
                 {
-                    connection.Open();
-
-                    // Check if the product exists in any invoice
-                    string checkSql = "SELECT COUNT(*) FROM InvoiceDetails WHERE ProductID = @ProductID";
-                    using (SqlCommand checkCommand = new SqlCommand(checkSql, connection))
-                    {
-                        checkCommand.Parameters.AddWithValue("@ProductID", id);
-                        int count = (int)checkCommand.ExecuteScalar();
-                        if (count > 0)
-                        {
-                            errorMessage = "Cannot delete the product as it exists in one or more invoices.";
-                            ViewBag.ErrorMessage = errorMessage;
-                            return RedirectToAction("Index", "SanPham");
-                        }
-                    }
-
-                    // Delete the product
-                    string deleteSql = "DELETE FROM Product WHERE ProductID = @ProductID";
-                    using (SqlCommand deleteCommand = new SqlCommand(deleteSql, connection))
-                    {
-                        deleteCommand.Parameters.AddWithValue("@ProductID", id);
-                        deleteCommand.ExecuteNonQuery();
-                    }
+                    successMessage = "Sản phẩm đã được xóa thành công";
+                    ViewBag.SuccessMessage = successMessage;
                 }
-                successMessage = "Product deleted successfully";
-                ViewBag.SuccessMessage = successMessage;
+                else
+                {
+                    errorMessage = await response.Content.ReadAsStringAsync();
+                    ViewBag.ErrorMessage = errorMessage;
+                }
             }
             catch (Exception ex)
             {

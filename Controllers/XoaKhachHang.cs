@@ -1,48 +1,40 @@
 ﻿using System;
-using Microsoft.Data.SqlClient;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 
 namespace CuaHang.Controllers
 {
     public class XoaKhachHangController : Controller
     {
+        private readonly HttpClient _httpClient;
+
+        public XoaKhachHangController(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
+
         public string errorMessage = "";
         public string successMessage = "";
 
         // GET: DeleteCustomer
-        public ActionResult Index(string id)
+        public async Task<ActionResult> Index(string id)
         {
             try
             {
-                string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                // Send DELETE request to the API
+                HttpResponseMessage response = await _httpClient.DeleteAsync($"KhachHang/{id}");
+
+                if (response.IsSuccessStatusCode)
                 {
-                    connection.Open();
-
-                    // Check if the customer exists in any invoice
-                    string checkSql = "SELECT COUNT(*) FROM Invoice WHERE CustomerID = @CustomerID";
-                    using (SqlCommand checkCommand = new SqlCommand(checkSql, connection))
-                    {
-                        checkCommand.Parameters.AddWithValue("@CustomerID", id);
-                        int count = (int)checkCommand.ExecuteScalar();
-                        if (count > 0)
-                        {
-                            errorMessage = "Cannot delete the customer as they exist in one or more invoices.";
-                            ViewBag.ErrorMessage = errorMessage;
-                            return RedirectToAction("Index", "KhachHang");
-                        }
-                    }
-
-                    // Delete the customer
-                    string deleteSql = "DELETE FROM Customer WHERE CustomerID = @CustomerID";
-                    using (SqlCommand deleteCommand = new SqlCommand(deleteSql, connection))
-                    {
-                        deleteCommand.Parameters.AddWithValue("@CustomerID", id);
-                        deleteCommand.ExecuteNonQuery();
-                    }
+                    successMessage = "Khách hàng đã được xóa thành công";
+                    ViewBag.SuccessMessage = successMessage;
                 }
-                successMessage = "Customer deleted successfully";
-                ViewBag.SuccessMessage = successMessage;
+                else
+                {
+                    errorMessage = await response.Content.ReadAsStringAsync();
+                    ViewBag.ErrorMessage = errorMessage;
+                }
             }
             catch (Exception ex)
             {
