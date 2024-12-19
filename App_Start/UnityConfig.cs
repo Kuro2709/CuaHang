@@ -20,7 +20,6 @@ namespace CuaHang.App_Start
             container.RegisterType<ISanPhamService, SanPhamApiService>();
             container.RegisterType<IKhachHangService, KhachHangApiService>();
             container.RegisterType<IHoaDonService, HoaDonApiService>();
-            
 
             // Register HttpClient with SSL validation bypass for local development
             container.RegisterFactory<HttpClient>(c =>
@@ -31,11 +30,8 @@ namespace CuaHang.App_Start
                         (message, cert, chain, errors) => true // Bypass SSL validation
                 };
 
-                var client = new HttpClient(handler)
-                {
-                    BaseAddress = new Uri("https://localhost:7262/api/")
-                };
-
+                var client = HttpClientFactory.Create(handler, new JwtTokenHandler());
+                client.BaseAddress = new Uri("https://localhost:7262/api/");
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 return client;

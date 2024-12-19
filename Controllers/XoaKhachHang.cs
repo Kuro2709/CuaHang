@@ -22,6 +22,14 @@ namespace CuaHang.Controllers
         {
             try
             {
+                var token = Session["JWTToken"]?.ToString();
+                if (string.IsNullOrEmpty(token))
+                {
+                    return RedirectToAction("Index", "TrangChu");
+                }
+
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
                 // Send DELETE request to the API
                 HttpResponseMessage response = await _httpClient.DeleteAsync($"KhachHang/{id}");
 
