@@ -34,7 +34,7 @@ namespace CuaHang.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> Index(ThongTinHoaDon invoice, string[] ProductID, int[] Quantity)
         {
-            System.Diagnostics.Debug.WriteLine("Form submission started.");
+            
 
             // Log form data
             foreach (var key in Request.Form.AllKeys)
