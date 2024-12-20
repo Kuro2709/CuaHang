@@ -428,6 +428,7 @@
     <Compile Include="App_Start\UnityConfig.cs" />
     <Compile Include="App_Start\UnityMvcActivator.cs" />
     <Compile Include="App_Start\WebAPIConfig.cs" />
+    <Compile Include="Controllers\AuthorizeAttribute.cs" />
     <Compile Include="Controllers\DangNhap.cs" />
     <Compile Include="Controllers\KiemTraQuyenTruyCap.cs" />
     <Compile Include="Controllers\ThemKhachHang.cs" />

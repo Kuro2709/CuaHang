@@ -46,7 +46,7 @@
         <div class="k-form-buttons" style="text-align: center; margin-top: 20px;">
             <div style="display: inline-block; margin-left: 200px;">
                 <input type="submit" value="Nhập tiếp" class="k-button k-primary" style="width: 100px; margin-right: 10px;" />
-                <a class="k-button k-secondary" href="/" style="width: 100px;">Hủy</a>
+                <button type="button" class="k-button k-secondary" onclick="resetForm()" style="width: 100px;">Hủy</button>
             </div>
         </div>
     </div>
@@ -73,5 +73,10 @@
                 $(this).val(value);
             });
         });
+
+        function resetForm() {
+            document.forms[0].reset();
+        }
     </script>
 }
+

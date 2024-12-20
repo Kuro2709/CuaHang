@@ -58,15 +58,7 @@ namespace CuaHang.Controllers
                 }
 
                 try
-                {
-                    var token = Session["JWTToken"]?.ToString();
-                    if (string.IsNullOrEmpty(token))
-                    {
-                        return RedirectToAction("Index", "TrangChu");
-                    }
-
-                    _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
+                { 
                     var jsonContent = JsonConvert.SerializeObject(customerInfo);
                     var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
                     var response = await _httpClient.PostAsync("KhachHang", content);
